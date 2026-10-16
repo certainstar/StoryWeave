@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>墨织 · StoryWeave</title>
+  <link rel="icon" href="../Docs/assets/icon.png">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <p class="narrow-note">墨织按桌面工作台设计。请把窗口拉宽到 960 像素以上再使用。</p>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <img class="mark" src="../Docs/assets/icon.png" width="32" height="32" alt="">
+        <span class="brand-name">墨织</span>
+        <span class="project-name" id="project-name">北境剑录</span>
+        <span class="sample">示例</span>
+      </div>
+      <div class="search-wrap">
+        <input id="search" class="search" type="search" placeholder="搜索人物、事件、章节和笔记" aria-label="搜索人物、事件、章节和笔记" autocomplete="off">
+        <div id="search-results" class="search-results" hidden></div>
+      </div>
+      <div class="top-actions">
+        <span class="status">未写入磁盘</span>
+        <button id="theme-toggle" class="btn" type="button" data-action="theme" aria-pressed="false">夜墨</button>
+        <button class="btn" type="button" data-action="export">导出 JSON</button>
+        <button class="btn" type="button" data-action="settings">设置</button>
+      </div>
+    </header>
+    <div class="shell">
+      <nav class="nav" id="nav" aria-label="工作区"></nav>
+      <main class="workspace">
+        <div class="workspace-scroll" id="workspace"></div>
+      </main>
+      <aside class="inspector" aria-label="详情">
+        <div class="inspector-scroll" id="inspector"></div>
+      </aside>
+    </div>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
