@@ -11,10 +11,10 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/certainstar/StoryWeave/stargazers"><img alt="GitHub stars" src="https://img.shields.io/github/stars/certainstar/StoryWeave?style=social"></a>
-  <a href="https://github.com/certainstar/StoryWeave/forks"><img alt="GitHub forks" src="https://img.shields.io/github/forks/certainstar/StoryWeave?style=social"></a>
-  <a href="https://github.com/certainstar/StoryWeave/releases"><img alt="Downloads" src="https://img.shields.io/github/downloads/certainstar/StoryWeave/total?style=flat-square&label=downloads&color=1c1915"></a>
-  <a href="https://github.com/certainstar/StoryWeave/blob/main/LICENSE"><img alt="License MIT" src="https://img.shields.io/github/license/certainstar/StoryWeave?style=flat-square&color=C23B32"></a>
+  <a href="https://github.com/certainstar/StoryWeave"><img alt="GitHub" src="https://img.shields.io/badge/GitHub-certainstar%2FStoryWeave-1c1915?style=flat-square&logo=github"></a>
+  <a href="https://github.com/certainstar/StoryWeave/stargazers"><img alt="Stars" src="https://img.shields.io/badge/stars-GitHub-1c1915?style=flat-square&logo=github"></a>
+  <a href="https://github.com/certainstar/StoryWeave/releases"><img alt="Downloads" src="https://img.shields.io/badge/downloads-releases-1c1915?style=flat-square&logo=github"></a>
+  <a href="LICENSE"><img alt="License MIT" src="https://img.shields.io/badge/license-MIT-C23B32?style=flat-square"></a>
   <img alt="平台：macOS、Windows、Linux" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-1c1915?style=flat-square">
   <img alt="阶段：原型" src="https://img.shields.io/badge/status-prototype-C23B32?style=flat-square">
 </p>
