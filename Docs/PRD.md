@@ -309,7 +309,7 @@ MVP 的权威存储是一份 SQLite。结构化数据和正文都先写进库里
 | 原型数据 | 「北境剑录」仅存在于原型会话，导出文件不代表正式格式 |
 | 外观 | 宣纸为默认，可切换夜墨。图标是两缕交织的墨线，交点一颗朱砂 |
 
-技术栈、表结构和命令划分见 [技术规划](./Planning.md)。
+技术选型、命令、表结构和错误码见 [TechStack](./TechStack.md)、[API](./API.md)、[DataModel](./DataModel.md)、[Errors](./Errors.md)。取舍过程见 [技术规划](./Planning.md)。本阶段目标见 [OKR](./OKR.md)。
 
 ## 12. 成功标准
 

@@ -23,6 +23,7 @@
   <a href="#原型">原型</a> ·
   <a href="#下载">下载</a> ·
   <a href="Docs/PRD.md">产品需求</a> ·
+  <a href="Docs/OKR.md">OKR</a> ·
   <a href="Docs/Planning.md">技术规划</a> ·
   <a href="Docs/Privacy.md">隐私</a> ·
   <a href="Changelog/CHANGELOG.md">变更记录</a>
@@ -110,7 +111,7 @@ Windows 可以直接双击 `Prototype/index.html`。
 | 数据 | 一份 SQLite。正文先存在库里，再导出为 Markdown / JSON |
 | 测试与 CI | Vitest、Rust 测试、GitHub Actions |
 
-本地数据库、文件和窗口由 Tauri 的 Rust 层完成。第一版不另起后端服务。
+本地数据库、文件和窗口由 Tauri 的 Rust 层完成。第一版不另起后端服务。已定选型见 [TechStack.md](Docs/TechStack.md)，命令、表和错误码见 [API.md](Docs/API.md)、[DataModel.md](Docs/DataModel.md)、[Errors.md](Docs/Errors.md)。页面从应用壳开始写，顺序见 [OKR.md](Docs/OKR.md)。
 
 ## 仓库结构
 
@@ -118,7 +119,12 @@ Windows 可以直接双击 `Prototype/index.html`。
 StoryWeave/
 ├── Docs/
 │   ├── PRD.md                 # 产品需求
+│   ├── OKR.md                 # 本阶段目标与写作顺序
 │   ├── Planning.md            # 技术规划
+│   ├── TechStack.md           # 已定技术选型
+│   ├── API.md                 # 本机命令
+│   ├── DataModel.md           # 项目库表结构
+│   ├── Errors.md              # 错误码
 │   ├── Privacy.md             # 隐私
 │   └── assets/                # 图标与原型截图
 ├── Prototype/                 # 可交互原型

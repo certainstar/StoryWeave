@@ -897,7 +897,12 @@ MVP 目标以个人小说项目为基准，后续根据真实数据调整：
 StoryWeave/
 ├── Docs/
 │   ├── PRD.md
+│   ├── OKR.md              # 本阶段目标，以及先写哪一页
 │   ├── Planning.md
+│   ├── TechStack.md        # 已定选型
+│   ├── API.md              # 本机命令
+│   ├── DataModel.md        # 项目库表结构
+│   ├── Errors.md           # 错误码
 │   ├── Privacy.md
 │   └── assets/             # 产品图标与原型截图
 ├── Prototype/              # 可交互原型
