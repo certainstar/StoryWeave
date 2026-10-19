@@ -16,7 +16,7 @@
   <a href="https://github.com/certainstar/StoryWeave/releases"><img alt="Downloads" src="https://img.shields.io/badge/downloads-releases-1c1915?style=flat-square&logo=github"></a>
   <a href="LICENSE"><img alt="License MIT" src="https://img.shields.io/badge/license-MIT-C23B32?style=flat-square"></a>
   <img alt="平台：macOS、Windows、Linux" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-1c1915?style=flat-square">
-  <img alt="阶段：原型" src="https://img.shields.io/badge/status-prototype-C23B32?style=flat-square">
+  <img alt="阶段：桌面预览" src="https://img.shields.io/badge/status-desktop%20preview-C23B32?style=flat-square">
 </p>
 
 <p align="center">
@@ -33,7 +33,7 @@ StoryWeave 帮助作者在正式写作前后整理创意：建立人物档案，
 
 作者若要多台设备互通，可以导入项目文件、连接自己的远端仓库，或自行配置。这些通路可以接到插件槽上。移动端留到桌面版之后再评估。
 
-当前仓库处于规划和原型阶段。桌面应用还没有初始化，[Releases](https://github.com/certainstar/StoryWeave/releases) 里还没有安装包。
+桌面应用在本仓库里开发。安装包会发到 [Releases](https://github.com/certainstar/StoryWeave/releases)。当前还没有公开发布的安装包。
 
 ## 原型
 
@@ -111,7 +111,7 @@ Windows 可以直接双击 `Prototype/index.html`。
 | 数据 | 一份 SQLite。正文先存在库里，再导出为 Markdown / JSON |
 | 测试与 CI | Vitest、Rust 测试、GitHub Actions |
 
-本地数据库、文件和窗口由 Tauri 的 Rust 层完成。第一版不另起后端服务。已定选型见 [TechStack.md](Docs/TechStack.md)，命令、表和错误码见 [API.md](Docs/API.md)、[DataModel.md](Docs/DataModel.md)、[Errors.md](Docs/Errors.md)。页面从应用壳开始写，顺序见 [OKR.md](Docs/OKR.md)。
+本地数据库、文件和窗口由 Tauri 进程里的 Rust 命令完成。已定选型见 [TechStack.md](Docs/TechStack.md)，命令、表和错误码见 [API.md](Docs/API.md)、[DataModel.md](Docs/DataModel.md)、[Errors.md](Docs/Errors.md)。写作顺序见 [OKR.md](Docs/OKR.md)。
 
 ## 仓库结构
 
@@ -128,6 +128,8 @@ StoryWeave/
 │   ├── Privacy.md             # 隐私
 │   └── assets/                # 图标与原型截图
 ├── Prototype/                 # 可交互原型
+├── Frontend/                  # 桌面应用（Vue + Tauri + Rust，见下）
+├── .github/workflows/         # macOS、Windows、Linux 构建
 ├── Changelog/
 │   └── CHANGELOG.md
 ├── CONTRIBUTING.md
@@ -137,7 +139,17 @@ StoryWeave/
 └── README.md
 ```
 
-桌面工程初始化之后，界面放在仓库根目录的 `src/`，数据库、文件和窗口放在 `src-tauri/`。
+根目录只放文档、原型和开源说明。桌面应用都在 `Frontend/`：
+
+```text
+Frontend/
+├── src/                   # Vue 界面
+├── public/
+├── src-tauri/             # Rust 命令与 SQLite
+├── package.json           # pnpm dev / pnpm build
+├── pnpm-lock.yaml
+└── rust-toolchain.toml
+```
 
 ## 下载
 
@@ -151,19 +163,35 @@ StoryWeave/
 | Windows | 随 MVP 提供，并做真实安装验证 |
 | Linux | 随贡献完善 |
 
-在安装包发布之前，用上面的原型查看工作台。
+在安装包发布之前，可以在本机启动桌面窗口，或用浏览器打开上面的原型。
 
 ## 开发
 
-应用脚手架还没有生成，仓库里因此还没有 `npm` 或 `cargo` 命令。初始化会按技术规划进行：
+需要 Node.js、pnpm，以及 stable Rust：
 
-1. 建立 Tauri 2 + Vue 3 + TypeScript 工程。
-2. 接上 SQLite 迁移，并完成项目的创建和打开。
-3. 实现人物档案和关系图，布局与档案分开保存。
-4. 加上事件、故事线、时间线和章节编辑器。
-5. 补上搜索、自动保存、快照、导出、主题和测试。
+```bash
+cd Frontend
+pnpm install
+pnpm dev          # 启动 Tauri 桌面窗口
+```
 
-建议的本地工具是当前仍受支持的 Node.js LTS、pnpm，以及 stable Rust。版本在工程初始化时锁定。
+只看界面、不启动窗口时：
+
+```bash
+cd Frontend
+pnpm dev:web
+```
+
+浏览器里的开发服务器使用内存仓库，刷新后数据留在这台浏览器。桌面窗口里的数据写入本机 SQLite。
+
+打当前系统的安装包：
+
+```bash
+cd Frontend
+pnpm build
+```
+
+macOS、Windows 和 Linux 由 [`.github/workflows/build.yml`](.github/workflows/build.yml) 同一套矩阵构建。本机先确认当前系统能编过并启动。
 
 参与方式见 [CONTRIBUTING.md](CONTRIBUTING.md)。
 

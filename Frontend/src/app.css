@@ -1,0 +1,137 @@
+.boot-error,
+.banner {
+  margin: 12px 18px 0;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--seal) 45%, var(--line));
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--seal) 8%, var(--sheet));
+}
+
+.banner {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.home {
+  min-height: 100vh;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  padding: 48px 20px 64px;
+}
+
+.home-card {
+  width: min(760px, 100%);
+}
+
+.home-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.home-brand h1 {
+  margin: 0;
+  font-family: var(--serif);
+  letter-spacing: 0.18em;
+  font-size: 28px;
+}
+
+.home form,
+.recent {
+  background: var(--sheet);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 18px;
+  margin-bottom: 16px;
+}
+
+.home label {
+  display: block;
+  margin: 12px 0 6px;
+}
+
+.home input,
+.home textarea {
+  width: 100%;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+  padding: 8px 0;
+}
+
+.recent button.row {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  padding: 10px 0;
+}
+
+.flow-node {
+  width: 168px;
+  min-height: 72px;
+  padding: 10px 14px;
+  background: color-mix(in srgb, var(--sheet) 92%, transparent);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  text-align: left;
+  box-shadow: var(--shadow);
+}
+
+.flow-node.is-selected {
+  border-color: var(--seal);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--seal) 18%, transparent), var(--shadow);
+}
+
+.graph-board {
+  height: calc(100vh - var(--top) - 220px);
+  min-height: 420px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  overflow: hidden;
+  background:
+    radial-gradient(420px 220px at 18% 20%, color-mix(in srgb, var(--seal) 7%, transparent), transparent 70%),
+    radial-gradient(480px 260px at 80% 80%, color-mix(in srgb, #3f5c54 9%, transparent), transparent 70%),
+    var(--sheet);
+  box-shadow: var(--shadow);
+}
+
+.graph-board .vue-flow {
+  background: transparent;
+}
+
+.vue-flow__handle {
+  opacity: 0;
+}
+
+.vue-flow__edge-text {
+  font-size: 12px;
+}
+
+.cm-editor {
+  min-height: 360px;
+  background: transparent;
+}
+
+.cm-gutters {
+  display: none !important;
+}
+
+.cm-scroller,
+.cm-content {
+  font-family: var(--serif);
+  font-size: 16px;
+  line-height: 1.75;
+}
+
+.cm-focused {
+  outline: none;
+}

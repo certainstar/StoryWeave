@@ -1,0 +1,46 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: Frontend
+
+jobs:
+  desktop:
+    name: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest, ubuntu-22.04]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: Frontend/pnpm-lock.yaml
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install Linux webview libraries
+        if: matrix.os == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf
+      - name: Install dependencies
+        run: pnpm install
+      - name: Typecheck the interface
+        run: pnpm exec vue-tsc --noEmit
+      - name: Test the local commands
+        run: cargo test --manifest-path src-tauri/Cargo.toml
+      - name: Build the desktop app
+        run: pnpm build
