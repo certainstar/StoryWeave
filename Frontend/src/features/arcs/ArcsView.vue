@@ -4,6 +4,12 @@ import PageHead from "../shell/PageHead.vue"
 
 const store = useWorkspace()
 
+/** 获取事件标题。 
+ * 
+ * @param id 事件 ID。
+ * 
+ * @returns 事件标题。
+*/
 function title(id: string) {
   return store.events.find((event) => event.id === id)?.title || "未命名事件"
 }

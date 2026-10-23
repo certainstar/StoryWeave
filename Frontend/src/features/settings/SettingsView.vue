@@ -6,6 +6,12 @@ import PageHead from "../shell/PageHead.vue"
 const store = useWorkspace()
 const slots = slotText("settings")
 
+/** 恢复快照。
+ * 
+ * @param snapshotAt 快照时间。
+ * 
+ * @returns 无返回值。
+*/
 async function restore(snapshotAt: string) {
   if (!window.confirm("用这份快照替换当前项目？替换前会再留一份。")) return
   await store.restoreBackup(snapshotAt)

@@ -9,9 +9,22 @@ import CharacterNode from "./CharacterNode.vue"
 
 const store = useWorkspace()
 
+/** 获取关系类型列表。
+ * 
+ * @returns 关系类型列表。
+*/
 const types = computed(() => [...new Set(store.relations.map((relation) => relation.type))])
+
+/** 获取可见关系列表。
+ * 
+ * @returns 可见关系列表。
+*/
 const visibleRelations = computed(() => store.relations.filter((relation) => !store.hiddenTypes.includes(relation.type)))
 
+/** 获取节点列表。 
+ * 
+ * @returns 节点列表。
+*/
 const nodes = computed<Node[]>(() =>
   store.characters.map((character, index) => {
     const pos = store.layout.nodes[character.id] ?? { x: 40 + (index % 4) * 210, y: 40 + Math.floor(index / 4) * 150 }
@@ -28,6 +41,10 @@ const nodes = computed<Node[]>(() =>
   }),
 )
 
+/** 获取关系列表。 
+ * 
+ * @returns 关系列表。
+*/
 const edges = computed<Edge[]>(() =>
   visibleRelations.value.map((relation) => ({
     id: relation.id,
@@ -41,18 +58,43 @@ const edges = computed<Edge[]>(() =>
   })),
 )
 
+/** 切换关系类型。
+ * 
+ * @param type 关系类型。
+ * @param checked 是否选中。
+ * 
+ * @returns 无返回值。
+*/
 function toggle(type: string, checked: boolean) {
   store.hiddenTypes = checked ? store.hiddenTypes.filter((item) => item !== type) : [...store.hiddenTypes, type]
 }
 
+/** 点击节点。
+ * 
+ * @param payload 节点事件。
+ * 
+ * @returns 无返回值。
+*/
 function onNodeClick(payload: NodeMouseEvent) {
   store.select({ kind: "character", id: payload.node.id })
 }
 
+/** 点击关系。
+ * 
+ * @param payload 关系事件。
+ * 
+ * @returns 无返回值。
+*/
 function onEdgeClick(payload: EdgeMouseEvent) {
   store.select({ kind: "relation", id: payload.edge.id })
 }
 
+/** 拖动节点。
+ * 
+ * @param payload 节点拖动事件。
+ * 
+ * @returns 无返回值。
+*/
 function onDrag(payload: NodeDragEvent) {
   const node = payload.node
   store.layout.nodes[node.id] = { x: node.position.x, y: node.position.y }

@@ -10,6 +10,10 @@ const emit = defineEmits<{ input: [string] }>()
 const host = ref<HTMLElement | null>(null)
 let view: EditorView | undefined
 
+/** 初始化编辑器。 
+ * 
+ * @returns 无返回值。
+*/
 onMounted(() => {
   if (!host.value) return
   view = new EditorView({
@@ -28,6 +32,12 @@ onMounted(() => {
   })
 })
 
+/** 监听章节 ID 变化，更新章节内容。
+ * 
+ * @param chapterId 章节 ID。
+ * 
+ * @returns 无返回值。
+*/
 watch(
   () => props.chapterId,
   () => {

@@ -30,63 +30,128 @@ const SAVE_DELAY = 800
  *
  * 写入会合并约 0.8 秒。顶栏的保存时间只在命令成功后更新。
  * 失败时 `statusLabel` 使用 `ApiError.message`。
- */
+*/
 export const useWorkspace = defineStore("workspace", () => {
   const router = useRouter()
   const repo = repository()
 
+  /** 应用主题。 */
   const theme = ref<"paper" | "ink">("paper")
+  /** 最近打开的项目。 */
   const recent = ref<ProjectSummary[]>([])
+  /** 恢复状态。 */
   const recovery = ref<Recovery>({ needed: false })
+  /** 当前项目。 */
   const project = ref<ProjectSummary | null>(null)
+  /** 人物列表。 */
   const characters = ref<Character[]>([])
+  /** 关系列表。 */
   const relations = ref<Relation[]>([])
+  /** 事件列表。 */
   const events = ref<StoryEvent[]>([])
+  /** 故事线列表。 */
   const arcs = ref<StoryArc[]>([])
+  /** 章节列表。 */
   const chapters = ref<Chapter[]>([])
+  /** 场景列表。 */
   const scenes = ref<Scene[]>([])
+  /** 笔记列表。 */
   const notes = ref<Note[]>([])
-  const layout = ref<GraphLayout>({ viewport: { x: 0, y: 0, zoom: 1 }, nodes: {}, updatedAt: "" })
+  /** 布局。 */
+  const layout = ref<GraphLayout>({
+    viewport: { 
+      x: 0, // 横轴偏移。
+      y: 0, // 纵轴偏移。
+      zoom: 1, // 缩放比例。
+    },
+    nodes: {}, // 节点地图。
+    updatedAt: "",
+  })
+  /** 插件列表。 */
   const plugins = ref<PluginInfo[]>([])
+  /** 快照列表。 */
   const snapshots = ref<Snapshot[]>([])
+  /** 当前选择的功能栏。 */
   const selection = ref<Selection>(null)
+  /** 关系草稿。 */
   const draft = ref<Pick<Relation, "sourceId" | "targetId" | "type" | "description" | "directional" | "span"> | null>(null)
+  /** 确认删除。 */
   const confirm = ref<{ kind: string; id: string; message: string } | null>(null)
+  /** 保存状态。 */
   const savePhase = ref<"idle" | "pending" | "saved" | "error">("idle")
+  /** 保存时间。 */
   const savedAt = ref("")
+  /** 提示。 */
   const notice = ref("")
+  /** 人物过滤条件。 */
   const characterFilter = ref("")
+  /** 状态过滤条件。 */
   const statusFilter = ref("全部")
+  /** 隐藏类型列表。 */
   const hiddenTypes = ref<string[]>([])
+  /** 搜索结果列表。 */
   const searchHits = ref<SearchHit[]>([])
+  /** 搜索面板是否打开。 */
   const searchOpen = ref(false)
 
+  /** 定时器列表。 */
   const timers = new Map<string, number>()
+  /** 正在保存的对象列表。 */
   const pending = new Set<string>()
 
+  /** 保存状态标签。 */
   const statusLabel = computed(() => {
-    if (savePhase.value === "pending") return "正在保存"
-    if (savePhase.value === "error") return notice.value || "刚才这次没有保存。可以重试。"
+    if (savePhase.value === "pending") return "正在保存～"
+    if (savePhase.value === "error") return notice.value || "刚才这次没有保存。可以重试～"
     if (savePhase.value === "saved" && savedAt.value) return `已保存 ${savedAt.value}`
-    return "尚未改动"
+    return "尚未改动～"
   })
 
+  /** 当前项目的 ID。 */
   const projectId = () => {
     if (!project.value) throw new ApiError("NOT_FOUND", "对象已不在。回到列表。")
     return project.value.id
   }
 
+  /** 应用主题。 
+   * 
+   * @param next 新的主题。
+   * 
+   * @returns 无返回值。
+  */
   function applyTheme(next: string) {
     const value = next === "ink" ? "ink" : "paper"
     theme.value = value
     document.documentElement.dataset.theme = value
   }
 
-  function fail(error: unknown) {
-    savePhase.value = "error"
-    notice.value = error instanceof ApiError ? error.message : "刚才这次没有保存。可以重试。"
+  /** 设置主题。 
+   * 
+   * @param next 新的主题。
+   * 
+   * @returns 无返回值。
+  */
+  async function setTheme(next: "paper" | "ink") {
+    applyTheme(next)
+    try {
+      applyTheme(await repo.appSetTheme(next))
+    } catch (error) {
+      fail(error)
+    }
   }
 
+  /** 保存失败。 
+   * 
+   * @param error 错误。
+   * 
+   * @returns 无返回值。
+  */
+  function fail(error: unknown) {
+    savePhase.value = "error"
+    notice.value = error instanceof ApiError ? error.message : "刚才这次没有保存。可以重试～"
+  }
+
+  /** 保存成功。 */
   function succeed() {
     if (pending.size === 0) {
       savePhase.value = "saved"
@@ -96,16 +161,20 @@ export const useWorkspace = defineStore("workspace", () => {
   }
 
   /**
-   * 把一次写入推迟约 0.8 秒。同一把钥匙的新修改会取消上一次。
+   * 把一次写入推迟约 0.8 秒。同一对象的新修改会取消上一次。
    *
-   * * `key` - 这次修改的对象。
-   * * `task` - 真正发给仓库的函数。失败时抛出 `ApiError`。
-   */
+   * @param key 这次修改的对象。
+   * @param task 真正发给仓库的函数。失败时抛出 `ApiError`。
+   * 
+   * @returns 无返回值。
+  */
   function queue(key: string, task: () => Promise<void>) {
     pending.add(key)
     savePhase.value = "pending"
+    /** 之前的定时器。 */
     const previous = timers.get(key)
     if (previous) window.clearTimeout(previous)
+    // 设置新的定时器，延迟 SAVE_DELAY 毫秒后执行。
     timers.set(
       key,
       window.setTimeout(() => {
@@ -123,13 +192,21 @@ export const useWorkspace = defineStore("workspace", () => {
     )
   }
 
+  /** 取消保存。 
+   * 
+   * @param key 这次修改的对象。
+   * 
+   * @returns 无返回值。
+  */
   function cancel(key: string) {
+    /** 之前的定时器。 */
     const timer = timers.get(key)
     if (timer) window.clearTimeout(timer)
     timers.delete(key)
     pending.delete(key)
   }
 
+  /** 启动，给部分状态赋值。 */
   async function boot() {
     const state = await repo.appGetState()
     applyTheme(state.theme)
@@ -138,15 +215,7 @@ export const useWorkspace = defineStore("workspace", () => {
     plugins.value = await repo.pluginList()
   }
 
-  async function setTheme(next: "paper" | "ink") {
-    applyTheme(next)
-    try {
-      applyTheme(await repo.appSetTheme(next))
-    } catch (error) {
-      fail(error)
-    }
-  }
-
+  /** 忽略恢复。 */
   async function dismissRecovery() {
     const current = recovery.value
     if (current.projectId && current.snapshotAt) {
@@ -155,6 +224,7 @@ export const useWorkspace = defineStore("workspace", () => {
     recovery.value = { needed: false }
   }
 
+  /** 恢复上次未保存的。 */
   async function restoreRecovery() {
     const current = recovery.value
     if (!current.projectId || !current.snapshotAt) return
@@ -164,6 +234,7 @@ export const useWorkspace = defineStore("workspace", () => {
     await openProject(summary.id)
   }
 
+  /** 创建项目。 */
   async function createProject(name: string, description: string) {
     const summary = await repo.projectCreate(name, description)
     recent.value = await repo.projectList()
@@ -171,23 +242,7 @@ export const useWorkspace = defineStore("workspace", () => {
     return summary
   }
 
-  async function loadProject(id: string) {
-    if (project.value?.id === id && characters.value) return
-    const summary = await repo.projectOpen(id)
-    project.value = summary
-    selection.value = null
-    draft.value = null
-    confirm.value = null
-    savePhase.value = "idle"
-    savedAt.value = ""
-    await reload()
-  }
-
-  async function openProject(id: string) {
-    await loadProject(id)
-    await router.push({ name: "overview", params: { id } })
-  }
-
+  /** 重新加载项目。 */
   async function reload() {
     const id = projectId()
     const [nextCharacters, nextRelations, nextEvents, nextArcs, nextChapters, nextNotes, nextLayout, nextSnapshots] = await Promise.all([
@@ -214,24 +269,76 @@ export const useWorkspace = defineStore("workspace", () => {
     project.value = opened
   }
 
+  /** 加载项目。 
+   * 
+   * @param id 项目 ID。
+   * 
+   * @returns 无返回值。
+  */
+  async function loadProject(id: string) {
+    if (project.value?.id === id && characters.value) return
+    const summary = await repo.projectOpen(id)
+    project.value = summary
+    selection.value = null
+    draft.value = null
+    confirm.value = null
+    savePhase.value = "idle"
+    savedAt.value = ""
+    await reload()
+  }
+
+  /** 打开项目。 
+   * 
+   * @param id 项目 ID。
+   * 
+   * @returns 无返回值。
+  */
+  async function openProject(id: string) {
+    await loadProject(id)
+    await router.push({ name: "overview", params: { id } })
+  }
+
+  /** 选择功能栏。 
+   * 
+   * @param next 新的选择。
+   * @param view 新的视图，可以不指定。
+   * 
+   * @returns 无返回值。
+  */
   function select(next: Selection, view?: ViewId) {
     selection.value = next
     confirm.value = null
+    // 如果选择的是关系功能栏，则不重置草稿。
     if (next?.kind !== "relation") draft.value = null
+    // 如果指定了视图，则导航到该视图。
     if (view && project.value) {
-      void router.push({ name: view, params: { id: project.value.id } })
+      void router.push({ 
+        name: view, 
+        params: { 
+          id: project.value.id,
+        },
+      })
     }
   }
 
+  /** 自动保存当前项目。 */
   function scheduleProject() {
     const current = project.value
     if (!current) return
     queue(`project:${current.id}`, async () => {
-      project.value = await repo.projectUpdate(current.id, current.name, current.description)
+      project.value = await repo.projectUpdate(
+        current.id, current.name, current.description
+      )
       recent.value = await repo.projectList()
     })
   }
 
+  /** 自动保存人物。 
+   * 
+   * @param id 人物 ID。
+   * 
+   * @returns 无返回值。
+  */
   function scheduleCharacter(id: string) {
     queue(`character:${id}`, async () => {
       const current = characters.value.find((item) => item.id === id)
@@ -241,6 +348,12 @@ export const useWorkspace = defineStore("workspace", () => {
     })
   }
 
+  /** 自动保存关系。 
+   * 
+   * @param id 关系 ID。
+   * 
+   * @returns 无返回值。
+  */
   function scheduleRelation(id: string) {
     queue(`relation:${id}`, async () => {
       const current = relations.value.find((item) => item.id === id)
@@ -250,6 +363,12 @@ export const useWorkspace = defineStore("workspace", () => {
     })
   }
 
+  /** 自动保存事件。 
+   * 
+   * @param id 事件 ID。
+   * 
+   * @returns 无返回值。
+  */
   function scheduleEvent(id: string) {
     queue(`event:${id}`, async () => {
       const current = events.value.find((item) => item.id === id)
@@ -259,6 +378,12 @@ export const useWorkspace = defineStore("workspace", () => {
     })
   }
 
+  /** 自动保存故事线。 
+   * 
+   * @param id 故事线 ID。
+   * 
+   * @returns 无返回值。
+  */
   function scheduleArc(id: string) {
     queue(`arc:${id}`, async () => {
       const current = arcs.value.find((item) => item.id === id)
@@ -269,6 +394,12 @@ export const useWorkspace = defineStore("workspace", () => {
     })
   }
 
+  /** 自动保存章节。 
+   * 
+   * @param id 章节 ID。
+   * 
+   * @returns 无返回值。
+  */
   function scheduleChapter(id: string) {
     queue(`chapter:${id}`, async () => {
       const current = chapters.value.find((item) => item.id === id)
@@ -278,6 +409,12 @@ export const useWorkspace = defineStore("workspace", () => {
     })
   }
 
+  /** 自动保存场景。 
+   * 
+   * @param id 场景 ID。
+   * 
+   * @returns 无返回值。
+  */
   function scheduleScene(id: string) {
     queue(`scene:${id}`, async () => {
       const current = scenes.value.find((item) => item.id === id)
@@ -287,6 +424,12 @@ export const useWorkspace = defineStore("workspace", () => {
     })
   }
 
+  /** 自动保存笔记。 
+   * 
+   * @param id 笔记 ID。
+   * 
+   * @returns 无返回值。
+  */
   function scheduleNote(id: string) {
     queue(`note:${id}`, async () => {
       const current = notes.value.find((item) => item.id === id)
@@ -296,6 +439,12 @@ export const useWorkspace = defineStore("workspace", () => {
     })
   }
 
+  /** 自动保存布局。 
+   * 
+   * @param nodeId 节点 ID，可以不指定。
+   * 
+   * @returns 无返回值。
+  */
   function scheduleLayout(nodeId?: string) {
     queue("layout", async () => {
       const nodes = nodeId && layout.value.nodes[nodeId] ? { [nodeId]: layout.value.nodes[nodeId] } : {}
@@ -303,6 +452,7 @@ export const useWorkspace = defineStore("workspace", () => {
     })
   }
 
+  /** 创建人物。 */
   async function createCharacter() {
     const created = await repo.characterCreate(projectId(), "未命名人物")
     characters.value.push(created)
@@ -310,6 +460,7 @@ export const useWorkspace = defineStore("workspace", () => {
     markSaved()
   }
 
+  /** 创建事件。 */
   async function createEvent() {
     const created = await repo.eventCreate(projectId(), "未命名事件")
     events.value.push(created)
@@ -317,6 +468,7 @@ export const useWorkspace = defineStore("workspace", () => {
     markSaved()
   }
 
+  /** 创建章节。 */
   async function createChapter() {
     const created = await repo.chapterCreate(projectId(), "未命名章节")
     chapters.value.push(created)
@@ -324,6 +476,7 @@ export const useWorkspace = defineStore("workspace", () => {
     markSaved()
   }
 
+  /** 创建故事线。 */
   async function createArc() {
     const created = await repo.arcCreate(projectId(), "未命名故事线")
     arcs.value.push(created)
@@ -331,6 +484,7 @@ export const useWorkspace = defineStore("workspace", () => {
     markSaved()
   }
 
+  /** 创建笔记。 */
   async function createNote() {
     const created = await repo.noteCreate(projectId(), "未命名笔记")
     notes.value.unshift(created)
@@ -338,12 +492,14 @@ export const useWorkspace = defineStore("workspace", () => {
     markSaved()
   }
 
+  /** 创建场景。 */
   async function createScene(chapterId: string) {
     const created = await repo.sceneCreate(projectId(), chapterId, "未命名场景")
     scenes.value.push(created)
     markSaved()
   }
 
+  /** 开始编辑关系。更新关系草稿。 */
   function beginRelation(sourceId = "") {
     const fallback = characters.value.find((item) => item.id !== sourceId)
     draft.value = {
@@ -359,23 +515,29 @@ export const useWorkspace = defineStore("workspace", () => {
     if (project.value) void router.push({ name: "graph", params: { id: project.value.id } })
   }
 
+  /** 保存关系草稿。 */
   async function saveDraft() {
     if (!draft.value) return
     try {
       const created = await repo.relationCreate(projectId(), draft.value)
       relations.value.push(created)
       draft.value = null
-      select({ kind: "relation", id: created.id }, "graph")
+      select({ 
+        kind: "relation", 
+        id: created.id,
+      }, "graph")
       markSaved()
     } catch (error) {
       fail(error)
     }
   }
 
+  /** 询问删除。 */
   function askDelete(kind: string, id: string, message: string) {
     confirm.value = { kind, id, message }
   }
 
+  /** 确认删除。 */
   async function confirmDelete() {
     const current = confirm.value
     if (!current) return
@@ -394,6 +556,13 @@ export const useWorkspace = defineStore("workspace", () => {
     markSaved()
   }
 
+  /** 移动事件。 
+   * 
+   * @param id 事件 ID。
+   * @param delta 移动方向。
+   * 
+   * @returns 无返回值。
+  */
   async function moveEvent(id: string, delta: number) {
     const sorted = [...events.value].sort((a, b) => a.sortOrder - b.sortOrder)
     const index = sorted.findIndex((item) => item.id === id)
@@ -406,6 +575,13 @@ export const useWorkspace = defineStore("workspace", () => {
     markSaved()
   }
 
+  /** 移动章节。 
+   * 
+   * @param id 章节 ID。
+   * @param delta 移动方向。
+   * 
+   * @returns 无返回值。
+  */
   async function moveChapter(id: string, delta: number) {
     const sorted = [...chapters.value].sort((a, b) => a.sortOrder - b.sortOrder)
     const index = sorted.findIndex((item) => item.id === id)
@@ -418,6 +594,13 @@ export const useWorkspace = defineStore("workspace", () => {
     markSaved()
   }
 
+  /** 设置故事线的事件。 
+   * 
+   * @param id 故事线 ID。
+   * @param eventIds 事件 ID 列表。
+   * 
+   * @returns 无返回值。  
+  */
   async function setArcEvents(id: string, eventIds: string[]) {
     const saved = await repo.arcSetEvents(projectId(), id, eventIds)
     const current = arcs.value.find((item) => item.id === id)
@@ -425,6 +608,12 @@ export const useWorkspace = defineStore("workspace", () => {
     markSaved()
   }
 
+  /** 搜索。 
+   * 
+   * @param query 搜索词。
+   * 
+   * @returns 无返回值。
+  */
   async function search(query: string) {
     if (!project.value || !query.trim()) {
       searchHits.value = []
@@ -435,6 +624,7 @@ export const useWorkspace = defineStore("workspace", () => {
     searchOpen.value = true
   }
 
+  /** 创建备份。 */
   async function makeBackup() {
     const snapshot = await repo.backupCreate(projectId())
     snapshots.value = await repo.backupList(projectId())
@@ -442,12 +632,18 @@ export const useWorkspace = defineStore("workspace", () => {
     return snapshot
   }
 
+  /** 恢复备份。 
+   * @param snapshotAt 备份时间。
+   * 
+   * @returns 无返回值。
+  */
   async function restoreBackup(snapshotAt: string) {
     project.value = await repo.backupRestore(projectId(), snapshotAt)
     await reload()
     markSaved()
   }
 
+  /** 生成示例数据。 */
   async function seedSample() {
     const summary = await createProject("北境剑录", "一部以北境剑庐为起点的长篇示例。沈照离庐三年，名册没有销名。")
     const id = summary.id
@@ -522,12 +718,17 @@ export const useWorkspace = defineStore("workspace", () => {
     await reload()
   }
 
+  /** 标记已保存。 */
   function markSaved() {
     savePhase.value = "saved"
     savedAt.value = new Date().toLocaleTimeString("zh-CN", { hour12: false })
     notice.value = ""
   }
 
+  /** 检查叙述顺序。 */
+  /** 
+   * @returns 叙述顺序不一致的提示。
+  */
   const narrativeMismatch = computed(() => {
     const told = [...events.value]
       .filter((event) => chapters.value.some((chapter) => chapter.eventIds.includes(event.id)))

@@ -3,30 +3,38 @@ import type { AppStateDto, Chapter, Note, PluginInfo, ProjectSummary, Scene, Sea
 import { ApiError } from "./errors"
 import type { StoryRepository } from "./story"
 
+/** 信封。 */
 interface Envelope<T> {
+  /** 是否成功。 */
   ok: boolean
+  /** 数据，成功时才有。 */
   data?: T
+  /** 错误，失败时才有。 */
   error?: { code: string; reason?: string; message: string }
 }
 
 /**
- * 调用一条 Tauri 命令，并把信封拆开。
+ * 调用一条 Tauri 命令，并把信封拆开。如果失败，则抛出 `ApiError`。
  *
- * * `command` - 命令名，与 Rust 函数同名。
- * * `args` - 驼峰参数。可以省略。
+ * @param command - 命令名，与 Rust 函数同名。
+ * @param args - 驼峰参数。可以省略。
  *
- * 返回 `data`。`ok` 为假时抛出 `ApiError`，错误码原样带上。
- */
+ * @returns 返回数据。`ok` 为假时抛出 `ApiError`，错误码原样带上。
+*/
 export async function call<T>(command: string, args?: Record<string, unknown>): Promise<T> {
   const result = await invoke<Envelope<T>>(command, args)
   if (!result.ok || result.error) {
     const error = result.error
-    throw new ApiError(error?.code ?? "STORAGE_ERROR", error?.message ?? "刚才这次没有保存。可以重试。", error?.reason)
+    throw new ApiError(
+      error?.code ?? "STORAGE_ERROR", 
+      error?.message ?? "刚才这次没有保存，请稍后重试~", 
+      error?.reason ?? "请稍后重试~"
+    )
   }
   return result.data as T
 }
 
-/** 桌面版仓库。每个方法对应一条 Rust 命令。 */
+/** 生产环境仓库实例。每个方法对应一条 Rust 命令。 */
 export function createInvokeRepository(): StoryRepository {
   return {
     async appGetState() {

@@ -4,6 +4,7 @@ import { useWorkspace } from "../../stores/workspace"
 import PageHead from "../shell/PageHead.vue"
 
 const store = useWorkspace()
+/** 未完成章节的数量。 */
 const openChapters = computed(() => store.chapters.filter((chapter) => chapter.status !== "完成").length)
 </script>
 

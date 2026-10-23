@@ -5,6 +5,13 @@ import { useWorkspace } from "../../stores/workspace"
 import PageHead from "../shell/PageHead.vue"
 
 const store = useWorkspace()
+
+/** 获取人物列表。 
+ * 
+ * @param query 查询条件。
+ * 
+ * @returns 人物列表。
+*/
 const rows = computed(() => {
   const query = store.characterFilter.trim().toLowerCase()
   return store.characters.filter((character) => {

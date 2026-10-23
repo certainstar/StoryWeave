@@ -18,105 +18,119 @@ import {
 import { ApiError, notFound, validation } from "./errors"
 import type { StoryRepository } from "./story"
 
+/** session存储键。 */
 const STORAGE_KEY = "storyweave.memory"
 
+/** 快照内容。 */
 interface SnapshotBody {
-  characters: Character[]
-  relations: Relation[]
-  events: StoryEvent[]
-  arcs: StoryArc[]
-  chapters: Chapter[]
-  scenes: Scene[]
-  notes: Note[]
-  layout: GraphLayout
-  summary: Pick<ProjectSummary, "name" | "description">
+  characters: Character[]  // 人物列表
+  relations: Relation[]  // 关系列表
+  events: StoryEvent[]  // 事件列表
+  arcs: StoryArc[]  // 故事线列表
+  chapters: Chapter[]  // 章节列表
+  scenes: Scene[]  // 场景列表
+  notes: Note[]  // 笔记列表
+  layout: GraphLayout  // 图谱布局
+  summary: Pick<ProjectSummary, "name" | "description">  // 项目摘要
 }
 
+/** 存储项目。 */
 interface StoredProject {
-  summary: ProjectSummary
-  characters: Character[]
-  relations: Relation[]
-  events: StoryEvent[]
-  arcs: StoryArc[]
-  chapters: Chapter[]
-  scenes: Scene[]
-  notes: Note[]
-  layout: GraphLayout
-  snapshots: Array<{ snapshotAt: string; body: SnapshotBody }>
+  summary: ProjectSummary  // 项目摘要
+  characters: Character[]  // 人物列表
+  relations: Relation[]  // 关系列表
+  events: StoryEvent[]  // 事件列表
+  arcs: StoryArc[]  // 故事线列表
+  chapters: Chapter[]  // 章节列表
+  scenes: Scene[]  // 场景列表
+  notes: Note[]  // 笔记列表
+  layout: GraphLayout  // 图谱布局
+  snapshots: Array<{ snapshotAt: string; body: SnapshotBody }>  // 快照列表
 }
 
+/** 存储文件。 */
 interface MemoryFile {
-  theme: string
-  clean: boolean
-  recoverySkip: string
-  sessionRead: boolean
-  projects: StoredProject[]
+  theme: string  // 主题
+  clean: boolean  // 表示当前页面即将隐藏或离开当前页面
+  recoverySkip: string  // 恢复跳过令牌
+  sessionRead: boolean  // 标记session是否已读取
+  projects: StoredProject[]  // 项目列表
 }
 
 /**
  * 浏览器里预览用的仓库。规则和桌面版命令一致，数据留在 localStorage。
- *
- * 返回与 `StoryRepository` 相同的方法。失败时抛出同样的错误码。
+ * 
+ * @returns 返回与 `StoryRepository` 相同的方法。失败时抛出同样的错误码。
  */
 export function createMemoryRepository(): StoryRepository {
-  const file = load()
-  const persist = () => localStorage.setItem(STORAGE_KEY, JSON.stringify(file))
-  window.addEventListener("pagehide", () => {
+  const file = load() // 加载存储文件
+  /** 持久化存储文件。 */
+  const persist = () => localStorage.setItem(STORAGE_KEY, JSON.stringify(file)) 
+  window.addEventListener("pagehide", () => {  // 监听页面隐藏事件，设置为已隐藏
     file.clean = true
     persist()
   })
 
+  /** 根据项目ID获取项目。 */
   const project = (id: string) => {
     const found = file.projects.find((item) => item.summary.id === id)
-    if (!found) throw notFound()
+    if (!found) throw notFound()  // 如果找不到则抛出错误
     return found
   }
+  /** 更新项目的时间戳。 */
   const touch = (item: StoredProject) => {
     const stamp = now()
     item.summary.updatedAt = stamp
     item.summary.lastOpenedAt = stamp
-    file.projects.sort((a, b) => b.summary.lastOpenedAt.localeCompare(a.summary.lastOpenedAt))
+    file.projects.sort((a, b) => b.summary.lastOpenedAt.localeCompare(a.summary.lastOpenedAt))  // 按最后打开时间排序
     persist()
     return stamp
   }
+  /** 确保文本不为空。 */
   const requireText = (value: string) => {
     const trimmed = value.trim()
-    if (!trimmed) throw validation("EMPTY_NAME", "名称不能为空")
+    if (!trimmed) throw validation("EMPTY_NAME", "名称不能为空~")
     return trimmed
   }
+  /** 确保值在允许的列表中。 */
   const oneOf = (value: string, allowed: readonly string[], reason: string, message: string) => {
     if (!allowed.includes(value)) throw validation(reason, message)
   }
 
   return {
     async appGetState() {
-      const previous = file.sessionRead ? true : file.clean
-      if (!file.sessionRead) {
+      const previous = file.sessionRead ? true : file.clean  // 如果session未读取，则上次状态取决于clean状态
+      if (!file.sessionRead) {  // 如果session未读取，且进入本方法则认为又回到页面
         file.clean = false
         file.sessionRead = true
-        persist()
+        persist()  // 持久化存储文件
       }
-      const recent = [...file.projects].sort((a, b) => b.summary.lastOpenedAt.localeCompare(a.summary.lastOpenedAt)).map((item) => item.summary)
+      const recent = [...file.projects].sort((a, b) => b.summary.lastOpenedAt.localeCompare(a.summary.lastOpenedAt)).map((item) => item.summary)  // 按最后打开时间排序
       const first = recent[0]
-      const snapshot = first ? project(first.id).snapshots[0] : undefined
-      const token = first && snapshot ? `${first.id}:${snapshot.snapshotAt}` : ""
-      const recovery = !previous && snapshot && token !== file.recoverySkip
+      const snapshot = first ? project(first.id).snapshots[0] : undefined  // 获取第一个项目的第一个快照，如果找不到则返回 undefined
+      const token = first && snapshot ? `${first.id}:${snapshot.snapshotAt}` : ""  // 如果第一个项目存在且有快照，则生成一个令牌
+      const recovery = !previous && snapshot && token !== file.recoverySkip  // 如果上次退出不完整且有快照且令牌不等于恢复跳过令牌，则需要恢复
         ? { needed: true, projectId: first.id, snapshotAt: snapshot.snapshotAt }
         : { needed: false, projectId: null, snapshotAt: null }
-      return { theme: file.theme, recent, recovery }
+      return { 
+        theme: file.theme, 
+        recent, 
+        recovery,
+      }
     },
     async appSetTheme(theme) {
-      oneOf(theme, ["paper", "ink"], "UNKNOWN_STATUS", "选择宣纸或夜墨。")
+      oneOf(theme, ["paper", "ink"], "UNKNOWN_STATUS", "当前主题仅支持宣纸和夜墨～")  // 确保主题在允许的列表中
       file.theme = theme
       persist()
       return theme
     },
     async appDismissRecovery(projectId, snapshotAt) {
-      file.recoverySkip = `${projectId}:${snapshotAt}`
+      file.recoverySkip = `${projectId}:${snapshotAt}`  // 设置恢复跳过令牌
       persist()
     },
     async pluginList() {
-      return [{ id: "sample", name: "示例插槽" }]
+      // TODO 实现读取已注册的进程内插件，当前只返回示例插槽。
+      return [{ id: "sample", name: "示例插槽" }]  // 返回示例插槽，用于演示插件功能
     },
     async projectList() {
       return [...file.projects].map((item) => item.summary).sort((a, b) => b.lastOpenedAt.localeCompare(a.lastOpenedAt))
@@ -133,7 +147,7 @@ export function createMemoryRepository(): StoryRepository {
         updatedAt: stamp,
         lastOpenedAt: stamp,
       }
-      file.projects.unshift(emptyProject(summary))
+      file.projects.unshift(emptyProject(summary))  // 创建一个空项目，并添加到项目列表最前面
       persist()
       return summary
     },
@@ -150,7 +164,8 @@ export function createMemoryRepository(): StoryRepository {
       touch(item)
       return item.summary
     },
-    async projectClose() {
+    async projectClose(id) {
+      // 网页版没有关闭项目库的功能，所以返回 undefined
       return undefined
     },
     async characterList(projectId) {
@@ -181,7 +196,7 @@ export function createMemoryRepository(): StoryRepository {
       const item = project(projectId)
       const index = item.characters.findIndex((entry) => entry.id === character.id)
       if (index < 0) throw notFound()
-      oneOf(character.status, CHARACTER_STATUS, "UNKNOWN_STATUS", "选择一种状态")
+      oneOf(character.status, CHARACTER_STATUS, "UNKNOWN_STATUS", "请选择一种人物状态～")
       const next = { ...character, name: requireText(character.name), updatedAt: now() }
       item.characters[index] = next
       touch(item)
@@ -191,6 +206,7 @@ export function createMemoryRepository(): StoryRepository {
       const item = project(projectId)
       const before = item.characters.length
       item.characters = item.characters.filter((entry) => entry.id !== id)
+      // 如果人物删除后，人物列表长度不变，则抛出错误
       if (item.characters.length === before) throw notFound()
       item.relations = item.relations.filter((relation) => relation.sourceId !== id && relation.targetId !== id)
       for (const event of item.events) {
@@ -268,8 +284,10 @@ export function createMemoryRepository(): StoryRepository {
       const index = item.events.findIndex((entry) => entry.id === event.id)
       if (index < 0) throw notFound()
       for (const person of event.participants) {
+        // 如果人物不存在，则抛出错误
         if (!item.characters.some((character) => character.id === person.characterId)) throw notFound()
       }
+      // 更新事件
       const next = { ...event, title: requireText(event.title), storyTime: event.storyTime?.trim() ? event.storyTime : null, updatedAt: now() }
       item.events[index] = next
       touch(item)
@@ -280,6 +298,7 @@ export function createMemoryRepository(): StoryRepository {
       const before = item.events.length
       item.events = item.events.filter((entry) => entry.id !== id)
       if (item.events.length === before) throw notFound()
+      // 更新故事线和章节的事件列表
       for (const arc of item.arcs) arc.eventIds = arc.eventIds.filter((eventId) => eventId !== id)
       for (const chapter of item.chapters) chapter.eventIds = chapter.eventIds.filter((eventId) => eventId !== id)
       touch(item)
@@ -299,7 +318,7 @@ export function createMemoryRepository(): StoryRepository {
     },
     async arcCreate(projectId, title, kind = "支线") {
       const item = project(projectId)
-      oneOf(kind, ARC_KINDS, "UNKNOWN_KIND", "选择一种故事线")
+      oneOf(kind, ARC_KINDS, "UNKNOWN_KIND", "请选择一种故事线～")
       const stamp = now()
       const arc: StoryArc = {
         id: uid(),
@@ -319,7 +338,7 @@ export function createMemoryRepository(): StoryRepository {
       const item = project(projectId)
       const index = item.arcs.findIndex((entry) => entry.id === arc.id)
       if (index < 0) throw notFound()
-      oneOf(arc.kind, ARC_KINDS, "UNKNOWN_KIND", "选择一种故事线")
+      oneOf(arc.kind, ARC_KINDS, "UNKNOWN_KIND", "请选择一种故事线～")
       const next = { ...item.arcs[index], title: requireText(arc.title), kind: arc.kind, summary: arc.summary, updatedAt: now() }
       item.arcs[index] = next
       touch(item)
@@ -336,7 +355,7 @@ export function createMemoryRepository(): StoryRepository {
       const item = project(projectId)
       const arc = item.arcs.find((entry) => entry.id === id)
       if (!arc) throw notFound()
-      if (new Set(eventIds).size !== eventIds.length) throw validation("DUPLICATE_LINK", "已经在里面了")
+      if (new Set(eventIds).size !== eventIds.length) throw validation("DUPLICATE_LINK", "事件已经在里面了~")
       for (const eventId of eventIds) {
         if (!item.events.some((event) => event.id === eventId)) throw notFound()
       }
@@ -371,9 +390,9 @@ export function createMemoryRepository(): StoryRepository {
       const item = project(projectId)
       const index = item.chapters.findIndex((entry) => entry.id === chapter.id)
       if (index < 0) throw notFound()
-      oneOf(chapter.status, CHAPTER_STATUS, "UNKNOWN_STATUS", "选择一种状态")
-      if (new Set(chapter.characterIds).size !== chapter.characterIds.length) throw validation("DUPLICATE_LINK", "已经在里面了")
-      if (new Set(chapter.eventIds).size !== chapter.eventIds.length) throw validation("DUPLICATE_LINK", "已经在里面了")
+      oneOf(chapter.status, CHAPTER_STATUS, "UNKNOWN_STATUS", "请选择一种状态～")
+      if (new Set(chapter.characterIds).size !== chapter.characterIds.length) throw validation("DUPLICATE_LINK", "人物已经在里面了~")
+      if (new Set(chapter.eventIds).size !== chapter.eventIds.length) throw validation("DUPLICATE_LINK", "事件已经在里面了~")
       const next = { ...chapter, title: requireText(chapter.title), updatedAt: now() }
       item.chapters[index] = next
       touch(item)
@@ -442,7 +461,14 @@ export function createMemoryRepository(): StoryRepository {
     async noteCreate(projectId, title) {
       const item = project(projectId)
       const stamp = now()
-      const note: Note = { id: uid(), title: requireText(title), content: "", tags: [], createdAt: stamp, updatedAt: stamp }
+      const note: Note = { 
+        id: uid(), 
+        title: requireText(title), 
+        content: "", 
+        tags: [], 
+        createdAt: stamp, 
+        updatedAt: stamp,
+      }
       item.notes.unshift(note)
       touch(item)
       return note
@@ -479,8 +505,11 @@ export function createMemoryRepository(): StoryRepository {
     async backupCreate(projectId) {
       const item = project(projectId)
       const snapshotAt = now().replace(/[-:]/g, "")
+      // 将新的快照添加到列表的头部
       item.snapshots.unshift({ snapshotAt, body: bodyOf(item) })
+      // 如果快照列表长度超过10，则删除最后一个快照
       item.snapshots = item.snapshots.slice(0, 10)
+      // 持久化存储文件
       persist()
       return { snapshotAt, path: `memory://backups/${projectId}/${snapshotAt}.sqlite` }
     },
@@ -493,9 +522,15 @@ export function createMemoryRepository(): StoryRepository {
     async backupRestore(projectId, snapshotAt) {
       const item = project(projectId)
       const snapshot = item.snapshots.find((entry) => entry.snapshotAt === snapshotAt)
-      if (!snapshot) throw new ApiError("BACKUP_ERROR", "恢复没有执行。")
+      if (!snapshot) throw new ApiError("BACKUP_ERROR", "恢复没有执行~")
+      // 生成一个安全的快照时间
       const safety: Snapshot["snapshotAt"] = `before-${now().replace(/[-:]/g, "")}`
-      item.snapshots.unshift({ snapshotAt: safety, body: bodyOf(item) })
+      // 创建一个当前项目备份快照，并添加到列表的头部
+      item.snapshots.unshift({ 
+        snapshotAt: safety, 
+        body: bodyOf(item) 
+      })
+      // 应用快照内容到项目
       applyBody(item, snapshot.body)
       item.snapshots = item.snapshots.slice(0, 10)
       touch(item)
@@ -503,15 +538,28 @@ export function createMemoryRepository(): StoryRepository {
     },
   }
 
+  /** 确保关系两端存在且类型和区间正确。无返回值。
+   * @param item - 项目。
+   * @param sourceId - 关系源人物 id。
+   * @param targetId - 关系目标人物 id。
+   * @param type - 关系类型。
+   * @param span - 关系区间。
+  */
   function assertRelation(item: StoredProject, sourceId: string, targetId: string, type: string, span: string) {
-    if (sourceId === targetId) throw validation("SELF_RELATION", "不能把人物连向自己")
-    if (!item.characters.some((character) => character.id === sourceId)) throw notFound()
-    if (!item.characters.some((character) => character.id === targetId)) throw notFound()
-    oneOf(type, RELATION_TYPES, "UNKNOWN_TYPE", "选择一种关系类型")
-    oneOf(span, RELATION_SPANS, "UNKNOWN_STATUS", "选择一种关系区间")
+    if (sourceId === targetId) throw validation("SELF_RELATION", "不能把人物连向自己～")
+    if (!item.characters.some((character) => character.id === sourceId)) throw notFound()  // 如果源人物不存在，则抛出错误
+    if (!item.characters.some((character) => character.id === targetId)) throw notFound()  // 如果目标人物不存在，则抛出错误
+    oneOf(type, RELATION_TYPES, "UNKNOWN_TYPE", "请选择一种关系类型～")
+    oneOf(span, RELATION_SPANS, "UNKNOWN_STATUS", "选择一种关系持续时间～")
   }
 }
 
+/** 创建一个空项目。
+ * 
+ * @param summary - 项目摘要。
+ * 
+ * @returns 返回一个空项目，包含项目摘要、人物列表、关系列表、事件列表、故事线列表、章节列表、场景列表、笔记列表和图谱布局。
+ */
 function emptyProject(summary: ProjectSummary): StoredProject {
   return {
     summary,
@@ -522,11 +570,25 @@ function emptyProject(summary: ProjectSummary): StoredProject {
     chapters: [],
     scenes: [],
     notes: [],
-    layout: { viewport: { x: 0, y: 0, zoom: 1 }, nodes: {}, updatedAt: summary.updatedAt },
+    layout: { 
+      viewport: { 
+        x: 0, 
+        y: 0, 
+        zoom: 1 
+      }, 
+      nodes: {}, 
+      updatedAt: summary.updatedAt 
+    },
     snapshots: [],
   }
 }
 
+/** 生成快照内容。
+ * 
+ * @param item - 项目。
+ * 
+ * @returns 返回快照内容，包含人物列表、关系列表、事件列表、故事线列表、章节列表、场景列表、笔记列表和图谱布局。
+*/
 function bodyOf(item: StoredProject): SnapshotBody {
   return {
     characters: structuredClone(item.characters),
@@ -537,10 +599,17 @@ function bodyOf(item: StoredProject): SnapshotBody {
     scenes: structuredClone(item.scenes),
     notes: structuredClone(item.notes),
     layout: structuredClone(item.layout),
-    summary: { name: item.summary.name, description: item.summary.description },
+    summary: { 
+      name: item.summary.name, 
+      description: item.summary.description 
+    },
   }
 }
 
+/** 应用快照内容到项目。无返回值。
+ * @param item - 项目。
+ * @param body - 快照内容。
+*/
 function applyBody(item: StoredProject, body: SnapshotBody) {
   item.characters = body.characters
   item.relations = body.relations
@@ -554,35 +623,69 @@ function applyBody(item: StoredProject, body: SnapshotBody) {
   item.summary.description = body.summary.description
 }
 
+/** 确保检查的数组包含原始数组全部元素，且不能重复。
+ * @param existing - 原始数组。
+ * @param ids - 检查的数组。
+ *  
+ * @returns 如果检查的数组不包含原始数组全部元素，或检查的数组元素重复，则抛出 `DUPLICATE_LINK`。
+*/
 function permute(existing: string[], ids: string[]) {
   const same = existing.length === ids.length && existing.every((id) => ids.includes(id)) && new Set(ids).size === ids.length
   if (!same) throw validation("DUPLICATE_LINK", "顺序需要包含全部条目，且不能重复。")
 }
 
+/** 生成下一个排序号。
+ * @param list - 排序号的列表。
+ * 
+ * @returns 返回下一个排序号，比列表中最大的排序号大1。
+*/
 function nextSort(list: Array<{ sortOrder: number }>) {
   return list.reduce((max, item) => Math.max(max, item.sortOrder), 0) + 1
 }
 
+/** 生成一个ISO时间字符串。
+ * 
+ * @returns 返回一个ISO时间字符串，格式为YYYY-MM-DDTHH:MM:SS.000Z。
+*/
 function now() {
   return new Date().toISOString().replace(/\.\d{3}Z$/, "Z")
 }
 
+/** 生成一个唯一的ID。
+ * 
+ * @returns 返回一个唯一的ID，长度为26个字符，由大小写字母和数字组成。
+*/
 function uid() {
   return crypto.randomUUID().replace(/-/g, "").slice(0, 26).toUpperCase()
 }
 
+/** 加载存储文件。
+ * 
+ * @returns 返回加载后的存储文件，包含主题、是否已清理、恢复忽略、会话已读取和项目列表。
+ * 如果存储文件不存在，或解析失败，则创建一个新的存储文件。
+*/
 function load(): MemoryFile {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return fresh()
+    if (!raw) return fresh()  // 如果存储文件不存在，则创建一个新的存储文件
     const parsed = JSON.parse(raw) as MemoryFile
-    parsed.sessionRead = false
+    parsed.sessionRead = false  // 设置会话已读取为 false
     return parsed
   } catch {
-    return fresh()
+    return fresh()  // 如果解析失败，则创建一个新的存储文件
   }
 }
 
+/** 创建一个新的存储文件。
+ * 
+ * @returns 返回一个新存储文件，包含主题、是否已清理、恢复忽略、会话已读取和项目列表。
+*/
 function fresh(): MemoryFile {
-  return { theme: "paper", clean: true, recoverySkip: "", sessionRead: false, projects: [] }
+  return {
+    theme: "paper",  // 设置主题为纸张
+    clean: true,  // 设置为已清理
+    recoverySkip: "",  // 设置恢复忽略为空
+    sessionRead: false,  // 设置会话已读取为 false
+    projects: [],  // 设置项目列表为空
+  }
 }

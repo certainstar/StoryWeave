@@ -15,3 +15,6 @@ target/
 .browser-profile*/
 Frontend/.browser-profile/
 Frontend/.browser-profile-*/
+
+.vite/
+Frontend/.vite/

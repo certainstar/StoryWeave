@@ -9,6 +9,7 @@ const description = ref("")
 const error = ref("")
 const busy = ref(false)
 
+/** 创建项目。 */
 async function create() {
   error.value = ""
   busy.value = true
@@ -21,6 +22,10 @@ async function create() {
   }
 }
 
+/** 写入北境剑录示例。
+ * 
+ * @returns 无返回值。
+*/
 async function sample() {
   error.value = ""
   busy.value = true

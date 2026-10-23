@@ -1,19 +1,18 @@
 /** 界面插槽。设置页按插槽名把文案渲染出来。 */
 export interface UiPlugin {
   id: string
-  /** 插槽名到一段说明。 */
+  /** 插槽文案的记录。 */
   slots: Record<string, string>
 }
 
+/** 界面插件列表。 */
 const plugins: UiPlugin[] = []
 
 /**
- * 注册一个界面插件。同一个 id 再注册会覆盖旧的。
+ * 注册一个界面插件。同一个 id 再注册会覆盖旧的。无返回值。插槽只负责展示，不读取正文。
  *
- * * `plugin` - 插件 id 和插槽文案。
- *
- * 不返回值。插槽只负责展示，不读取正文。
- */
+ * @param plugin - 插件。
+*/
 export function register(plugin: UiPlugin): void {
   const index = plugins.findIndex((item) => item.id === plugin.id)
   if (index >= 0) plugins[index] = plugin
@@ -23,10 +22,10 @@ export function register(plugin: UiPlugin): void {
 /**
  * 某个插槽上的全部文案。
  *
- * * `slot` - 插槽名，例如 `settings`。
+ * @param slot - 插槽名，例如 `settings`。
  *
- * 返回按注册顺序排列的说明。
- */
+ * @returns 返回按注册顺序排列的插槽文案。
+*/
 export function slotText(slot: string): string[] {
   return plugins.map((plugin) => plugin.slots[slot]).filter((text): text is string => Boolean(text))
 }

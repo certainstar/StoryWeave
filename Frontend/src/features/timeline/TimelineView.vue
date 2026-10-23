@@ -4,13 +4,26 @@ import { useWorkspace } from "../../stores/workspace"
 import PageHead from "../shell/PageHead.vue"
 
 const store = useWorkspace()
+/** 按顺序排列的事件列表。 */
 const sorted = computed(() => [...store.events].sort((a, b) => a.sortOrder - b.sortOrder || a.title.localeCompare(b.title, "zh")))
 
+/** 获取人物名称列表。 
+ * 
+ * @param ids 人物 ID 列表。
+ * 
+ * @returns 人物名称列表。
+*/
 function people(ids: string[]) {
   const names = ids.map((id) => store.characters.find((character) => character.id === id)?.name).filter(Boolean)
   return names.join("、") || "没有参与者"
 }
 
+/** 获取事件首次叙述的章节。
+ * 
+ * @param eventId 事件 ID。
+ * 
+ * @returns 首次叙述的章节。
+*/
 function firstChapter(eventId: string) {
   return [...store.chapters].filter((chapter) => chapter.eventIds.includes(eventId)).sort((a, b) => a.sortOrder - b.sortOrder)[0]
 }

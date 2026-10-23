@@ -3,6 +3,12 @@ import { VIEWS, type ViewId } from "../../domain/types"
 
 defineProps<{ view: ViewId; meta: string }>()
 
+/** 获取页面信息。
+ * 
+ * @param id 页面 ID。
+ * 
+ * @returns 页面信息。
+*/
 const page = (id: ViewId) => VIEWS.find((item) => item.id === id)!
 </script>
 

@@ -1,6 +1,13 @@
 <script setup lang="ts">
 import { Handle, Position } from "@vue-flow/core"
 
+/** 定义节点数据。 
+ * 
+ * @param data 节点数据。
+ * @param selected 是否选中。
+ * 
+ * @returns 无返回值。
+*/
 defineProps<{ data: { name: string; role: string; index: string }; selected?: boolean }>()
 </script>
 

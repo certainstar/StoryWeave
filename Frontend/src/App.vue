@@ -7,15 +7,17 @@ const bootError = ref("")
 
 onMounted(async () => {
   try {
+    // 初始化工作台，加载项目和数据
     await store.boot()
   } catch (error) {
-    bootError.value = error instanceof Error ? error.message : "刚才这次没有打开。"
+    // 如果初始化失败，显示错误信息
+    bootError.value = error instanceof Error ? error.message : "应用初始化失败，请稍后重试。"
   }
 })
 </script>
 
 <template>
-  <p class="narrow-note">墨织按桌面工作台设计。请把窗口拉宽到 960 像素以上再使用。</p>
+  <p class="narrow-note">墨织提示: 窗口宽度达到 960 像素以上使用效果更佳～</p>
   <p v-if="bootError" class="boot-error">{{ bootError }}</p>
   <RouterView />
 </template>

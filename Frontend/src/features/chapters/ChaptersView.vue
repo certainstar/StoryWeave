@@ -12,6 +12,12 @@ const selected = computed(() =>
 )
 const preview = computed(() => renderMarkdown(selected.value?.content ?? ""))
 
+/** 更新章节内容。
+ * 
+ * @param value 章节内容。
+ * 
+ * @returns 无返回值。
+*/
 function onInput(value: string) {
   if (!selected.value) return
   selected.value.content = value

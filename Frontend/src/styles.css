@@ -721,5 +721,5 @@ input[type="checkbox"]:checked::after {
 
 @media (max-width: 959px) {
   .app { display: none; }
-  .narrow-note { display: block; }
+  .narrow-note { display: block; }  /* 在宽度小于959px时，显示窄提示 */
 }

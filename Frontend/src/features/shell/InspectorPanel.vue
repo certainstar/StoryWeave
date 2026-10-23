@@ -10,6 +10,7 @@ const route = useRoute()
 const arcAddId = ref("")
 const view = computed(() => String(route.name ?? ""))
 
+// 根据选择的功能栏，获取对应的记录。
 const character = computed(() => store.characters.find((item) => store.selection?.kind === "character" && item.id === store.selection.id))
 const relation = computed(() => store.relations.find((item) => store.selection?.kind === "relation" && item.id === store.selection.id))
 const event = computed(() => store.events.find((item) => store.selection?.kind === "event" && item.id === store.selection.id))
@@ -18,6 +19,7 @@ const chapter = computed(() => store.chapters.find((item) => store.selection?.ki
 const note = computed(() => store.notes.find((item) => store.selection?.kind === "note" && item.id === store.selection.id))
 const chapterScenes = computed(() => store.scenes.filter((scene) => scene.chapterId === chapter.value?.id).sort((a, b) => a.sortOrder - b.sortOrder))
 
+// 根据功能栏，显示对应的提示。
 const hints: Record<string, string> = {
   characters: "选择一个人物查看档案。",
   graph: "选择一个节点或一条关系。",
@@ -27,16 +29,38 @@ const hints: Record<string, string> = {
   notes: "选择一条笔记。",
 }
 
+/** 更新人物别名。
+ * 
+ * @param value 别名列表。
+ * @param person 人物。
+ * 
+ * @returns 无返回值。
+*/
 function aliases(value: string, person: Character) {
   person.aliases = value.split(/[、,，]/).map((item) => item.trim()).filter(Boolean)
   store.scheduleCharacter(person.id)
 }
 
+/** 更新笔记标签。
+ * 
+ * @param value 标签列表。
+ * @param item 笔记。
+ * 
+ * @returns 无返回值。
+*/
 function tags(value: string, item: Note) {
   item.tags = value.split(/[、,，]/).map((part) => part.trim()).filter(Boolean)
   store.scheduleNote(item.id)
 }
 
+/** 切换事件参与者。
+ * 
+ * @param item 事件。
+ * @param id 人物 ID。
+ * @param checked 是否选中。
+ * 
+ * @returns 无返回值。
+*/
 function toggleParticipant(item: StoryEvent, id: string, checked: boolean) {
   item.participants = checked
     ? [...item.participants, { characterId: id, role: "" }]
@@ -44,18 +68,46 @@ function toggleParticipant(item: StoryEvent, id: string, checked: boolean) {
   store.scheduleEvent(item.id)
 }
 
+/** 切换 ID 列表中的选中状态。
+ * 
+ * @param list ID 列表。
+ * @param id ID。
+ * @param checked 是否选中。
+ * 
+ * @returns 新的 ID 列表。
+*/
 function toggleId(list: string[], id: string, checked: boolean) {
   return checked ? [...list, id] : list.filter((item) => item !== id)
 }
 
+/** 获取人物名称。
+ * 
+ * @param id 人物 ID。
+ * 
+ * @returns 人物名称。
+*/
 function nameOf(id: string) {
   return store.characters.find((item) => item.id === id)?.name || "未命名人物"
 }
 
+/** 获取事件标题。
+ * 
+ * @param id 事件 ID。
+ * 
+ * @returns 事件标题。
+*/
 function eventTitle(id: string) {
   return store.events.find((item) => item.id === id)?.title || "未命名事件"
 }
 
+/** 移动故事线中的事件。
+ * 
+ * @param item 故事线。
+ * @param eventId 事件 ID。
+ * @param delta 移动方向。
+ * 
+ * @returns 无返回值。
+*/
 async function moveArcEvent(item: StoryArc, eventId: string, delta: number) {
   const ids = [...item.eventIds]
   const index = ids.indexOf(eventId)
@@ -66,19 +118,45 @@ async function moveArcEvent(item: StoryArc, eventId: string, delta: number) {
   await store.setArcEvents(item.id, ids)
 }
 
+/** 添加事件到故事线。
+ * 
+ * @param item 故事线。
+ * @param eventId 事件 ID。
+ * 
+ * @returns 无返回值。
+*/
 async function addArcEvent(item: StoryArc, eventId: string) {
   if (!eventId) return
   await store.setArcEvents(item.id, [...item.eventIds, eventId])
 }
 
+/** 获取人物的关系列表。
+ * 
+ * @param id 人物 ID。
+ * 
+ * @returns 关系列表。
+*/
 function relationsOf(id: string) {
   return store.relations.filter((entry) => entry.sourceId === id || entry.targetId === id)
 }
 
+/** 获取不在指定 ID 列表中的事件。
+ * 
+ * @param ids 事件 ID 列表。
+ * 
+ * @returns 不在指定 ID 列表中的事件列表。
+*/
 function eventsNotIn(ids: string[]) {
   return store.events.filter((entry) => !ids.includes(entry.id))
 }
 
+/** 判断是否在询问删除。
+ * 
+ * @param kind 类型。
+ * @param id ID。
+ * 
+ * @returns 是否在询问删除。
+*/
 function asking(kind: string, id: string) {
   return store.confirm?.kind === kind && store.confirm.id === id
 }

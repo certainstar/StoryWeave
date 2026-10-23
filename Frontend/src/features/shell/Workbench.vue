@@ -38,11 +38,13 @@ async function ensureProject(id: string) {
   }
 }
 
+// 加载当前路由的 ID 对应的项目。
 onMounted(() => {
   const id = String(route.params.id ?? "")
   if (id) void ensureProject(id)
 })
 
+// 监听项目 ID 变化，加载项目。
 watch(
   () => route.params.id,
   (id) => {
