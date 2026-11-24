@@ -1,0 +1,129 @@
+.boot-error,
+.banner {
+  margin: 12px 18px 0;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--seal) 45%, var(--line));
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--seal) 8%, var(--sheet));
+}
+
+.banner {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.home {
+  min-height: 100vh;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  padding: 48px 20px 64px;
+}
+
+.home-card {
+  width: min(760px, 100%);
+}
+
+.home-brand {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.home-brand .mark {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.home-brand h1 {
+  margin: 0 0 6px;
+  font-family: var(--serif);
+  letter-spacing: 0.18em;
+  font-size: 32px;
+  line-height: 1.1;
+}
+
+.home-tagline {
+  margin: 0;
+  max-width: 36em;
+  line-height: 1.55;
+  color: var(--muted);
+}
+
+.home-panel,
+.recent {
+  background: var(--sheet);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 18px;
+  margin-bottom: 16px;
+}
+
+.home-form {
+  display: grid;
+  gap: 4px;
+}
+
+.home-form-actions {
+  margin-top: 12px;
+}
+
+.home-form-error {
+  margin-top: 8px;
+  color: var(--seal);
+}
+
+.home-form-desc {
+  resize: none;
+  min-height: 6.5em;
+  max-height: 6.5em;
+  overflow-y: auto;
+  line-height: 1.6;
+}
+
+.recent-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid var(--line);
+  padding: 6px 0;
+}
+
+.recent-row .row-main {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(6em, 28%) minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  padding: 6px 8px;
+  border-radius: 8px;
+  transition: background 0.15s ease;
+}
+
+.recent-row .row-main:hover {
+  background: var(--wash);
+}
+
+.recent-name {
+  font-family: var(--serif);
+  font-size: 16px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.recent-meta {
+  text-align: right;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

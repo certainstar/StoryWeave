@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "墨织主窗口。文件和数据库只在 Rust 里访问。",
+  "windows": ["main"],
+  "permissions": ["core:default", "allow-storyweave"]
+}

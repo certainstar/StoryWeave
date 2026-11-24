@@ -1,0 +1,23 @@
+:root[data-theme="dragon"] {
+  --paper: #1a1814;
+  --sheet: #242018;
+  --ink: #f5eed8;
+  --muted: #b8a890;
+  --line: #3d3428;
+  --rule: #e8d8b8;
+  --seal: #c9a030;
+  --wash: rgba(245, 238, 216, 0.05);
+  --shadow: 0 14px 36px rgba(0, 0, 0, 0.32);
+  --topbar-bg: color-mix(in srgb, var(--sheet) 97%, var(--paper));
+  --topbar-border: color-mix(in srgb, var(--line) 85%, var(--paper));
+  color-scheme: dark;
+}
+
+html[data-theme="dragon"]::before {
+  background:
+    url("/themes/dragon/bg.jpg") center / cover no-repeat fixed,
+    linear-gradient(color-mix(in srgb, var(--paper) 72%, transparent), color-mix(in srgb, var(--paper) 88%, transparent)),
+    radial-gradient(95vmax 62vmax at 20% 0%, color-mix(in srgb, var(--seal) 12%, transparent), transparent 55%),
+    radial-gradient(80vmax 55vmax at 80% 100%, color-mix(in srgb, #8a4040 10%, transparent), transparent 60%),
+    var(--paper);
+}

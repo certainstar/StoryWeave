@@ -162,11 +162,9 @@ StoryWeave 是一款面向小说作者的开源软件，帮助作者在正式写
 
 
 
-### 3.2 是否需要 Go 后端？
+### 3.2 本机能力放在哪里？
 
-**第一版不需要额外的 Go/FastAPI 后端。**
-
-建议先采用：
+本机能力是 **Tauri 进程内的 Rust**。窗口、命令和 SQLite 在同一个进程里。不另起 Go 或 FastAPI 服务，也不为插件加载动态库。
 
 ```text
 Vue 3 + TypeScript
@@ -179,16 +177,10 @@ Vue 3 + TypeScript
         │
         ├── SQLite
         ├── 本地文件读写
-        └── 系统能力
+        └── 进程内插件 trait
 ```
 
-原因：
-
-- 应用以单机使用为主，不需要服务端 API。
-- 多一个本地服务会增加启动、端口、进程管理和打包复杂度。
-- Tauri 的 Rust 层可以直接处理本地数据库和文件操作。
-
-未来如果出现明确需求，可以再引入独立的 Go 服务，例如需要复用已有 Go 分析库、运行长期后台任务或提供本地 HTTP API。不要为了“前后端分离”而预先引入服务。
+这样定，是因为再挂一个服务会多一个端口、一次构建和一套插件加载问题。`tauri build` 本身就能打出 macOS、Windows 和 Linux。新插件实现 `Plugin` trait，再注册一行。
 
 ### 3.3 编辑器选型建议
 
@@ -542,7 +534,7 @@ CREATE TABLE arc_events (
 ### 6.3 前端目录建议
 
 ```text
-src/
+Frontend/src/               # 与仓库根下 Frontend/src 相同
 ├── app/
 │   ├── App.vue
 │   ├── router.ts
@@ -891,7 +883,7 @@ MVP 目标以个人小说项目为基准，后续根据真实数据调整：
 
 ### 13.1 仓库结构
 
-应用还没有初始化。这一阶段仓库只放需求、原型和开源说明，不预建空的 `src/` 或 `src-tauri/`，以免和以后的 Tauri 脚手架冲突。也不使用 `Backend/`、`Frontend/` 这种前后端分仓目录：第一版没有独立后端。
+桌面应用在 `Frontend/`：Vue 在 `src/`，Tauri 与 Rust 在 `src-tauri/`。没有单独的 HTTP 服务。
 
 ```text
 StoryWeave/
@@ -914,17 +906,16 @@ StoryWeave/
 └── README.md
 ```
 
-桌面工程初始化之后，在仓库根目录补上这些目录，而不是另起一套后端服务：
+当前工程在 `Frontend/`，而不是另起一套后端服务：
 
 ```text
-src/                        # Vue 前端
-src-tauri/                  # Tauri / Rust
-public/
-scripts/
-tests/
-.github/workflows/
-package.json
-pnpm-lock.yaml
+Frontend/
+├── src/                    # Vue 界面
+├── public/
+├── src-tauri/              # Tauri / Rust
+├── package.json
+├── pnpm-lock.yaml
+└── rust-toolchain.toml
 ```
 
 
@@ -1110,7 +1101,7 @@ pnpm-lock.yaml
 4. **图谱：** Vue Flow。
 5. **编辑器：** Markdown 原文编辑，并排预览。实现用 CodeMirror 6，不并行做所见即所得。
 6. **本地数据：** SQLite，MVP 中结构化数据和正文优先采用单一权威存储。
-7. **后端：** 暂不引入独立 Go/FastAPI 服务；Tauri Rust 层负责本地能力。
+7. **本机能力：** Tauri 进程内的 Rust 命令。不引入独立服务。
 8. **AI：** MVP 后接入，通过 Provider 接口支持远程和可选本地模型。
 9. **用户信息与多端：** 不存储用户信息，不托管同步。先保证导出、备份、恢复和导入。远端仓库鉴权和自行配置的同步以后通过插件槽接入，凭据属于作者自己。
 10. **发布形态：** 当前是桌面版。先确保 macOS 与 Windows 都能构建和安装；Linux 可按贡献完善。移动端在桌面版之后评估。

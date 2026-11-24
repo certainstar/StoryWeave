@@ -1,10 +1,10 @@
 # API
 
 > 版本：v1.0  
-> 更新日期：2026-10-16  
+> 更新日期：2026-10-18  
 > 桌面版 MVP 的本机命令。字段见 [数据模型](./DataModel.md)，失败见 [错误码](./Errors.md)
 
-这些命令不是 HTTP 接口。桌面应用里由界面调用 Tauri 命令，Rust 执行。第一段前端可以用内存实现同一份函数，页面代码不改调用形状。
+这些命令不是 HTTP 接口。界面调用 Tauri 命令，由同一进程里的 Rust 执行。信封不变。页面只依赖仓库接口，不自己拼 SQL。
 
 命令名使用下面的蛇形名称。参数和返回值使用驼峰 JSON。
 
@@ -140,10 +140,12 @@ interface ProjectSummary {
 
 | 命令 | 参数 | 成功时 |
 | --- | --- | --- |
-| `app_get_state` | 无 | `{ theme: "paper" \| "ink", recent: ProjectSummary[], recovery: { needed: boolean, snapshotAt: string \| null } }` |
+| `app_get_state` | 无 | `{ theme: "paper" \| "ink", recent: ProjectSummary[], recovery: { needed: boolean, projectId: string \| null, snapshotAt: string \| null } }` |
 | `app_set_theme` | `{ theme }` | `{ theme }` |
+| `app_dismiss_recovery` | `{ projectId, snapshotAt }` | `{ dismissed: true }` |
+| `plugin_list` | 无 | `{ id: string, name: string }[]` |
 
-`recovery.needed` 为真时，界面询问是否恢复最近快照。作者拒绝则保持现状。
+`recovery.needed` 为真时，界面询问是否恢复 `projectId` 的这份 `snapshotAt`。作者拒绝则调用 `app_dismiss_recovery`，同一份快照不再重复询问。`plugin_list` 只返回已经注册的进程内插件名称。
 
 ## 项目
 

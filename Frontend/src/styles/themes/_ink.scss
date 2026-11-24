@@ -1,0 +1,21 @@
+:root[data-theme="ink"] {
+  --paper: #141311;
+  --sheet: #1c1b18;
+  --ink: #f3eee6;
+  --muted: #a3988c;
+  --line: #34302b;
+  --rule: #e6dccf;
+  --seal: #e07064;
+  --wash: rgba(243, 238, 230, 0.05);
+  --shadow: 0 12px 32px rgba(0, 0, 0, 0.28);
+  --topbar-bg: color-mix(in srgb, var(--sheet) 96%, var(--paper));
+  --topbar-border: color-mix(in srgb, var(--line) 80%, var(--paper));
+  color-scheme: dark;
+}
+
+html[data-theme="ink"]::before {
+  background:
+    url("/themes/ink/bg.jpg") center / cover no-repeat fixed,
+    linear-gradient(color-mix(in srgb, var(--paper) 72%, transparent), color-mix(in srgb, var(--paper) 88%, transparent)),
+    var(--paper);
+}

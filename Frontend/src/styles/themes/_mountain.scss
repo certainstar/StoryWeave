@@ -1,0 +1,22 @@
+:root[data-theme="mountain"] {
+  --paper: #e8eef0;
+  --sheet: #f2f6f8;
+  --ink: #1a2830;
+  --muted: #4a5c66;
+  --line: #c4d2d8;
+  --rule: #2a4858;
+  --seal: #3a7a8a;
+  --wash: rgba(26, 40, 48, 0.06);
+  --shadow: 0 12px 28px rgba(48, 88, 104, 0.12);
+  --topbar-bg: color-mix(in srgb, var(--sheet) 93%, var(--paper));
+  --topbar-border: var(--line);
+  color-scheme: light;
+}
+
+html[data-theme="mountain"]::before {
+  background:
+    url("/themes/mountain/bg.jpg") center / cover no-repeat fixed,
+    linear-gradient(color-mix(in srgb, var(--paper) 45%, transparent), color-mix(in srgb, var(--paper) 72%, transparent)),
+    radial-gradient(100vmax 70vmax at 50% 0%, color-mix(in srgb, #6a9aaa 14%, transparent), transparent 70%),
+    var(--paper);
+}

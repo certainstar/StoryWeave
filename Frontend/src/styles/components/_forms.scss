@@ -1,0 +1,320 @@
+.sw-form-card {
+  width: min(520px, calc(100vw - 32px));
+  padding: 22px 24px 20px;
+  border-radius: calc(var(--radius) + 6px);
+  background: color-mix(in srgb, var(--sheet) 96%, var(--paper));
+  border: 1px solid color-mix(in srgb, var(--seal) 22%, var(--line));
+  box-shadow:
+    var(--shadow),
+    inset 0 1px 0 color-mix(in srgb, white 40%, transparent);
+}
+
+.sw-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 16px;
+  margin-top: 6px;
+}
+
+.sw-field-span {
+  grid-column: 1 / -1;
+}
+
+.sw-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.sw-label {
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  color: color-mix(in srgb, var(--ink) 55%, var(--muted));
+}
+
+.sw-input,
+.sw-select,
+.sw-textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--wash) 35%, var(--sheet));
+  transition:
+    border-color 0.16s ease,
+    box-shadow 0.16s ease,
+    background 0.16s ease;
+}
+
+.sw-input:hover,
+.sw-select:hover,
+.sw-textarea:hover {
+  border-color: color-mix(in srgb, var(--seal) 28%, var(--line));
+}
+
+.sw-input:focus-visible,
+.sw-select:focus-visible,
+.sw-textarea:focus-visible {
+  outline: none;
+  border-color: color-mix(in srgb, var(--seal) 50%, var(--line));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--seal) 14%, transparent);
+  background: var(--sheet);
+}
+
+.sw-select-root {
+  position: relative;
+  width: 100%;
+}
+
+.sw-select-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--wash) 35%, var(--sheet));
+  text-align: left;
+  transition:
+    border-color 0.16s ease,
+    box-shadow 0.16s ease,
+    background 0.16s ease;
+}
+
+.sw-select-trigger:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--seal) 28%, var(--line));
+}
+
+.sw-select-root.is-open .sw-select-trigger,
+.sw-select-trigger:focus-visible {
+  outline: none;
+  border-color: color-mix(in srgb, var(--seal) 50%, var(--line));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--seal) 14%, transparent);
+  background: var(--sheet);
+}
+
+.sw-select-root.is-disabled .sw-select-trigger {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.sw-select-value.is-placeholder {
+  color: var(--muted);
+}
+
+.sw-select-chevron {
+  flex-shrink: 0;
+  transition: transform 0.16s ease;
+}
+
+.sw-select-root.is-open .sw-select-chevron {
+  transform: rotate(180deg);
+}
+
+.sw-select-menu {
+  position: absolute;
+  z-index: 40;
+  left: 0;
+  right: 0;
+  top: calc(100% + 6px);
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  max-height: min(280px, 42vh);
+  overflow: auto;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--seal) 22%, var(--line));
+  background: color-mix(in srgb, var(--sheet) 98%, white);
+  box-shadow: var(--shadow);
+  animation: sw-select-in 0.16s ease;
+}
+
+@keyframes sw-select-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+.sw-select-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.12s ease;
+}
+
+.sw-select-option:hover,
+.sw-select-option.is-active {
+  background: color-mix(in srgb, var(--seal) 8%, var(--wash));
+}
+
+.sw-select-option.is-on {
+  font-weight: 600;
+  color: color-mix(in srgb, var(--seal) 80%, var(--ink));
+}
+
+.sw-select-check {
+  width: 1.1em;
+  flex-shrink: 0;
+  color: var(--seal);
+  font-size: 12px;
+}
+
+.sw-combobox {
+  position: relative;
+  width: 100%;
+}
+
+.sw-combobox-field {
+  display: flex;
+  align-items: stretch;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--wash) 35%, var(--sheet));
+  overflow: hidden;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.sw-combobox.is-open .sw-combobox-field,
+.sw-combobox-field:focus-within {
+  border-color: color-mix(in srgb, var(--seal) 45%, var(--line));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--seal) 12%, transparent);
+  background: var(--sheet);
+}
+
+.sw-combobox-input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  padding: 10px 12px;
+  font-family: var(--serif);
+  font-size: 15px;
+  letter-spacing: 0.04em;
+}
+
+.sw-combobox-input:focus-visible {
+  outline: none;
+}
+
+.sw-combobox-toggle {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  border: 0;
+  border-left: 1px solid var(--line);
+  background: color-mix(in srgb, var(--wash) 40%, transparent);
+  color: var(--muted);
+}
+
+.sw-combobox-menu {
+  z-index: 50;
+}
+
+.sw-combobox-empty {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: var(--seal);
+}
+
+.relation-modal-lede {
+  margin: 0 0 14px;
+  font-size: 13px;
+  color: color-mix(in srgb, var(--ink) 52%, var(--muted));
+}
+
+.sw-textarea {
+  resize: vertical;
+  min-height: 96px;
+  font-family: var(--sans);
+  line-height: 1.5;
+}
+
+.sw-check {
+  grid-column: 1 / -1;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 2px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px dashed color-mix(in srgb, var(--seal) 22%, var(--line));
+  background: color-mix(in srgb, var(--wash) 50%, transparent);
+}
+
+.relation-modal-actions {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
+.vocab-field-modern {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.vocab-field--inspector {
+  gap: 0;
+}
+
+.vocab-hint-footer {
+  margin-top: 4px;
+  font-size: 11px;
+}
+
+.vocab-custom-block {
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--seal) 32%, var(--line));
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--seal) 8%, transparent), transparent 55%),
+    color-mix(in srgb, var(--sheet) 94%, var(--wash));
+  animation: vocab-block-in 0.28s ease;
+}
+
+.vocab-custom-prominent {
+  border-width: 2px;
+  border-color: color-mix(in srgb, var(--seal) 45%, var(--line));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--seal) 12%, transparent);
+}
+
+.vocab-custom-heading {
+  display: block;
+  margin: 0 0 6px;
+  font-family: var(--serif);
+  font-size: 14px;
+  letter-spacing: 0.08em;
+  color: color-mix(in srgb, var(--seal) 75%, var(--ink));
+}
+
+.vocab-custom-input {
+  font-family: var(--serif);
+  font-size: 16px;
+  letter-spacing: 0.04em;
+}
+
+.vocab-preset-select:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+@keyframes vocab-block-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+@media (max-width: 560px) {
+  .sw-form-grid {
+    grid-template-columns: 1fr;
+  }
+}

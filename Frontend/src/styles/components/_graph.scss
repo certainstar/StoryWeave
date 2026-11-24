@@ -1,0 +1,290 @@
+.flow-node {
+  width: 168px;
+  min-height: 72px;
+  padding: 10px 14px;
+  background: color-mix(in srgb, var(--sheet) 92%, transparent);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  text-align: left;
+  box-shadow: var(--shadow);
+}
+
+.flow-node:focus-visible,
+.vue-flow__node:focus-visible .flow-node {
+  outline: 1px solid color-mix(in srgb, var(--seal) 45%, transparent);
+  outline-offset: 1px;
+}
+
+.flow-node.is-selected {
+  border-color: var(--seal);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--seal) 18%, transparent), var(--shadow);
+}
+
+.graph-board {
+  height: calc(100vh - var(--top) - 220px);
+  min-height: 420px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  overflow: hidden;
+  background:
+    radial-gradient(420px 220px at 18% 20%, color-mix(in srgb, var(--seal) 7%, transparent), transparent 70%),
+    radial-gradient(480px 260px at 80% 80%, color-mix(in srgb, #3f5c54 9%, transparent), transparent 70%),
+    var(--sheet);
+  box-shadow: var(--shadow);
+}
+
+.graph-board .vue-flow {
+  background: transparent;
+}
+
+.vue-flow__handle {
+  opacity: 0;
+}
+
+.vue-flow__edge-text {
+  font-size: 12px;
+}
+
+.vue-flow__edge-path {
+  stroke-linecap: round;
+}
+
+.vue-flow__edge.selected .vue-flow__edge-path {
+  filter: drop-shadow(0 0 4px color-mix(in srgb, var(--seal) 25%, transparent));
+}
+
+.draft-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  align-items: end;
+  background: color-mix(in srgb, var(--ink) 28%, transparent);
+}
+
+.draft-sheet-panel {
+  margin: 12px;
+  padding: 18px;
+  border-radius: var(--radius) var(--radius) 0 0;
+  background: var(--sheet);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+  max-height: 80vh;
+  overflow: auto;
+}
+
+.draft-sheet-panel h2 {
+  margin: 0 0 12px;
+  font-family: var(--serif);
+}
+
+.graph-hud-panel {
+  z-index: 20;
+  overflow: visible !important;
+}
+
+.graph-hud-panel .vue-flow__panel {
+  overflow: visible !important;
+}
+
+.graph-command-inline {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.graph-create-btn-inline {
+  flex-shrink: 0;
+  min-height: 42px;
+}
+
+.graph-filter-select {
+  position: relative;
+  flex: 1;
+  min-width: min(320px, 100%);
+}
+
+.graph-filter-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  min-height: 42px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--sheet) 94%, var(--wash));
+  text-align: left;
+}
+
+.graph-filter-select.is-open .graph-filter-trigger {
+  border-color: color-mix(in srgb, var(--seal) 40%, var(--line));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--seal) 12%, transparent);
+}
+
+.graph-filter-menu {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  max-height: min(320px, 50vh);
+  overflow: auto;
+  padding: 10px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--sheet);
+  box-shadow: var(--shadow);
+}
+
+.graph-filter-menu-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.graph-filter-options {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.graph-filter-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 8px;
+}
+
+.graph-filter-option:hover {
+  background: color-mix(in srgb, var(--wash) 60%, transparent);
+}
+
+.graph-command-bar {
+  display: grid;
+  grid-template-columns: minmax(140px, 180px) minmax(0, 1fr);
+  gap: 14px;
+  align-items: stretch;
+  margin-bottom: 16px;
+}
+
+.graph-command-primary,
+.graph-command-filters {
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: calc(var(--radius) + 2px);
+  background: color-mix(in srgb, var(--sheet) 92%, var(--wash));
+  box-shadow: var(--shadow);
+}
+
+.graph-command-primary {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.graph-command-filters {
+  min-width: 0;
+}
+
+.graph-command-label {
+  margin: 0;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  color: color-mix(in srgb, var(--ink) 45%, var(--muted));
+  font-family: var(--serif);
+}
+
+.graph-create-btn {
+  width: 100%;
+  justify-content: center;
+}
+
+.graph-command-filters .graph-filters {
+  margin: 0;
+  align-items: center;
+}
+
+@media (max-width: 720px) {
+  .graph-command-bar {
+    grid-template-columns: 1fr;
+  }
+}
+
+.graph-toolbar {
+  align-items: center;
+}
+
+.graph-empty-hint {
+  margin: 8px 0 12px;
+}
+
+.graph-toolbar .graph-filters {
+  align-items: center;
+}
+
+.toolbar-same-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.graph-hud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  margin: 8px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--sheet) 94%, transparent);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(12px);
+}
+
+.graph-hud .ui-tooltip-host {
+  display: inline-flex;
+}
+
+.graph-hud-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink);
+}
+
+.graph-hud-btn:hover {
+  background: var(--wash);
+  color: var(--seal);
+}
+
+.graph-filters {
+  align-items: center;
+}
+
+.inspector-scene {
+  margin: 10px 0;
+  padding: 10px 0;
+  border-bottom: 1px dashed var(--line);
+}
+
+.inspector-scene:last-of-type {
+  border-bottom: 0;
+}

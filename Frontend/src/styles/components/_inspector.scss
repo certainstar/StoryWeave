@@ -1,0 +1,124 @@
+.inspector-scroll {
+  padding: 22px 18px 96px;
+}
+
+.confirm-in-inspector {
+  scroll-margin-block: 24px;
+  margin-top: 12px;
+}
+
+.inspector h2 {
+  margin: 0 0 4px;
+  font-size: 22px;
+  letter-spacing: 0.06em;
+}
+
+.field-label {
+  display: block;
+  margin: 16px 0 6px;
+}
+
+.inspector .vocab-field--inspector {
+  margin: 0 0 4px;
+}
+
+.inspector .vocab-field--inspector .field-label {
+  margin-top: 16px;
+}
+
+.inspector .vocab-field--inspector .vocab-hint {
+  display: none;
+}
+
+.inspector .vocab-field--inspector .sw-combobox {
+  width: 100%;
+}
+
+.inspector .vocab-field--inspector .sw-combobox-field {
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+  transition: border-color 0.15s ease;
+}
+
+.inspector .vocab-field--inspector .sw-combobox.is-open .sw-combobox-field,
+.inspector .vocab-field--inspector .sw-combobox-field:focus-within {
+  border-bottom-color: color-mix(in srgb, var(--seal) 55%, var(--line));
+  box-shadow: none;
+}
+
+.inspector .vocab-field--inspector .sw-combobox-input {
+  padding: 7px 0;
+  font-family: var(--sans);
+  font-size: 14px;
+  letter-spacing: normal;
+}
+
+.inspector .vocab-field--inspector .sw-combobox-toggle {
+  width: 32px;
+  border: 0;
+  border-left: 1px solid color-mix(in srgb, var(--line) 75%, transparent);
+  background: transparent;
+  margin-right: -4px;
+}
+
+.inspector .vocab-field--inspector .sw-select-menu {
+  border-radius: 10px;
+}
+
+.inspector input[type="text"],
+.inspector textarea,
+.inspector select,
+.stack input[type="text"],
+.stack select {
+  width: 100%;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+  padding: 7px 0;
+  border-radius: 0;
+  transition: border-color 0.15s ease;
+}
+
+.inspector input:focus-visible,
+.inspector textarea:focus-visible,
+.inspector select:focus-visible {
+  outline: none;
+  border-bottom-color: color-mix(in srgb, var(--seal) 55%, var(--line));
+}
+
+.inspector textarea {
+  min-height: 72px;
+  max-height: 12em;
+  resize: vertical;
+  line-height: 1.6;
+}
+
+.links {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+}
+
+.links button,
+button.linkish {
+  background: transparent;
+  border: 0;
+  padding: 4px 0;
+  text-align: left;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--seal) 55%, transparent);
+  text-underline-offset: 3px;
+}
+
+.inspector-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.inspector-lede {
+  margin: 0 0 12px;
+}
