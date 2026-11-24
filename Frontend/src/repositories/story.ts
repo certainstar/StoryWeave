@@ -1,5 +1,6 @@
 import type {
   AppStateDto,
+  LeaveDraft,
   Chapter,
   Character,
   GraphLayout,
@@ -14,6 +15,7 @@ import type {
   StoryArc,
   StoryEvent,
   Viewport,
+  Vocab,
 } from "../domain/types"
 
 /**
@@ -45,11 +47,23 @@ export interface StoryRepository {
   */
   appDismissRecovery(projectId: string, snapshotAt: string): Promise<void>
 
+  /** 保存离开页面时的草稿策略。 */
+  appSetLeaveDraft(leaveDraft: LeaveDraft): Promise<void>
+
   /** 读取已注册的进程内插件，插件用于扩展应用功能。
    * 
    * @returns 已注册的进程内插件列表，包含插件 id 和名称。
   */
   pluginList(): Promise<PluginInfo[]>
+
+  /** 读取全局预设词表。 */
+  vocabList(): Promise<Vocab>
+
+  /** 读取项目合并词表。 */
+  vocabListForProject(projectId: string): Promise<Vocab>
+
+  /** 将自定义标签写入项目词表。 */
+  vocabEnsure(projectId: string, category: string, label: string): Promise<Vocab>
 
   /** 最近项目列表。 
    * 
@@ -92,6 +106,9 @@ export interface StoryRepository {
    * @param id - 项目 id。
   */
   projectClose(id: string): Promise<void>
+
+  /** 删除项目及其快照。 */
+  projectDelete(id: string): Promise<void>
 
   /** 人物列表。
    * 
@@ -267,6 +284,9 @@ export interface StoryRepository {
   */
   arcSetEvents(projectId: string, id: string, eventIds: string[]): Promise<StoryArc>
 
+  /** 调整故事线顺序。 */
+  arcReorder(projectId: string, ids: string[]): Promise<StoryArc[]>
+
   /** 章节列表，按叙述顺序。 
    * 
    * @param projectId - 项目 id。
@@ -337,6 +357,15 @@ export interface StoryRepository {
   */
   sceneDelete(projectId: string, id: string): Promise<void>
 
+  /**
+   * 调整某一章下场景顺序。
+   *
+   * @param projectId - 项目 id。
+   * @param chapterId - 章节 id。
+   * @param ids - 新的顺序。
+   */
+  sceneReorder(projectId: string, chapterId: string, ids: string[]): Promise<Scene[]>
+
   /** 笔记列表。 
    * 
    * @param projectId - 项目 id。
@@ -366,6 +395,8 @@ export interface StoryRepository {
    * @param id - 笔记 id。
   */
   noteDelete(projectId: string, id: string): Promise<void>
+  /** 重排笔记。 */
+  noteReorder(projectId: string, ids: string[]): Promise<Note[]>
 
   /**
    * 搜索人物、事件、故事线、章节和笔记。

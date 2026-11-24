@@ -110,6 +110,7 @@ pub struct Note {
     pub title: String,
     pub content: String,
     pub tags: Vec<String>,
+    pub sort_order: i64,
     pub created_at: String,
     pub updated_at: String,
 }
@@ -186,6 +187,18 @@ pub struct AppStateDto {
     pub theme: String,
     pub recent: Vec<ProjectSummary>,
     pub recovery: Recovery,
+    pub leave_draft: String,
+}
+
+/// 界面下拉词表。
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct VocabDto {
+    pub character_status: Vec<String>,
+    pub relation_types: Vec<String>,
+    pub relation_spans: Vec<String>,
+    pub arc_kinds: Vec<String>,
+    pub chapter_status: Vec<String>,
 }
 
 /// 删除成功。

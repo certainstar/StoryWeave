@@ -1,15 +1,19 @@
-import { createRouter, createWebHistory } from "vue-router"
-import ArcsView from "./features/arcs/ArcsView.vue"
-import ChaptersView from "./features/chapters/ChaptersView.vue"
-import CharactersView from "./features/characters/CharactersView.vue"
-import GraphView from "./features/graph/GraphView.vue"
+import { createRouter, createWebHistory, type RouteRecordRaw } from "vue-router"
 import HomeView from "./features/home/HomeView.vue"
-import NotesView from "./features/notes/NotesView.vue"
-import OverviewView from "./features/overview/OverviewView.vue"
-import SettingsView from "./features/settings/SettingsView.vue"
-import TimelineView from "./features/timeline/TimelineView.vue"
 import Workbench from "./features/shell/Workbench.vue"
 
+const workbenchChildren: RouteRecordRaw[] = [
+  { path: "", redirect: { name: "overview" } },
+  { path: "overview", name: "overview", component: () => import("./features/overview/OverviewView.vue") },
+  { path: "characters", name: "characters", component: () => import("./features/characters/CharactersView.vue") },
+  { path: "graph", name: "graph", component: () => import("./features/graph/GraphView.vue") },
+  { path: "arcs", name: "arcs", component: () => import("./features/arcs/ArcsView.vue") },
+  { path: "timeline", name: "timeline", component: () => import("./features/timeline/TimelineView.vue") },
+  { path: "chapters", name: "chapters", component: () => import("./features/chapters/ChaptersView.vue") },
+  { path: "notes", name: "notes", component: () => import("./features/notes/NotesView.vue") },
+  { path: "reader", name: "reader", component: () => import("./features/reader/ReaderView.vue") },
+  { path: "settings", name: "settings", component: () => import("./features/settings/SettingsView.vue") },
+]
 
 /** 工作台路由。项目 id 在地址里，刷新后仍打开同一个项目。 */
 export const router = createRouter({
@@ -19,17 +23,7 @@ export const router = createRouter({
     {
       path: "/project/:id",
       component: Workbench,
-      children: [
-        { path: "", redirect: { name: "overview" } },
-        { path: "arcs", name: "arcs", component: ArcsView },
-        { path: "chapters", name: "chapters", component: ChaptersView },
-        { path: "characters", name: "characters", component: CharactersView },
-        { path: "graph", name: "graph", component: GraphView },
-        { path: "notes", name: "notes", component: NotesView },
-        { path: "overview", name: "overview", component: OverviewView },
-        { path: "timeline", name: "timeline", component: TimelineView },
-        { path: "settings", name: "settings", component: SettingsView },
-      ],
+      children: workbenchChildren,
     },
   ],
 })

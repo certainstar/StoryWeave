@@ -1,24 +1,27 @@
 <script setup lang="ts">
+import { computed } from "vue"
+import AppIcon from "../../components/ui/AppIcon.vue"
+import UiTooltip from "../../components/ui/UiTooltip.vue"
 import { VIEWS, type ViewId } from "../../domain/types"
 
-defineProps<{ view: ViewId; meta: string }>()
+const props = defineProps<{ view: ViewId; meta: string }>()
 
-/** 获取页面信息。
- * 
- * @param id 页面 ID。
- * 
- * @returns 页面信息。
-*/
-const page = (id: ViewId) => VIEWS.find((item) => item.id === id)!
+const page = computed(() => VIEWS.find((item) => item.id === props.view)!)
 </script>
 
 <template>
   <header class="ws-head">
     <div class="ws-title">
-      <span class="folio">{{ page(view).index }}</span>
-      <div>
-        <h1>{{ page(view).label }}</h1>
-        <p>{{ page(view).blurb }}</p>
+      <span class="folio">{{ page.index }}</span>
+      <div class="ws-title-text">
+        <UiTooltip :label="page.blurb" placement="bottom">
+          <span class="ws-title-row">
+            <h1>{{ page.label }}</h1>
+            <span class="ws-tip-icon" aria-hidden="true">
+              <AppIcon name="help" :size="14" />
+            </span>
+          </span>
+        </UiTooltip>
       </div>
     </div>
     <p class="ws-meta">{{ meta }}</p>

@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core"
-import type { AppStateDto, Chapter, Note, PluginInfo, ProjectSummary, Scene, SearchHit, Snapshot } from "../domain/types"
+import type { AppStateDto, Chapter, Note, PluginInfo, ProjectSummary, Scene, SearchHit, Snapshot, Vocab } from "../domain/types"
 import { ApiError } from "./errors"
 import type { StoryRepository } from "./story"
 
@@ -47,13 +47,22 @@ export function createInvokeRepository(): StoryRepository {
     async appDismissRecovery(projectId, snapshotAt) {
       await call("app_dismiss_recovery", { projectId, snapshotAt })
     },
+    async appSetLeaveDraft(leaveDraft) {
+      await call("app_set_leave_draft", { leaveDraft })
+    },
     pluginList: () => call<PluginInfo[]>("plugin_list"),
+    vocabList: () => call<Vocab>("vocab_list"),
+    vocabListForProject: (projectId) => call<Vocab>("vocab_list_for_project", { projectId }),
+    vocabEnsure: (projectId, category, label) => call<Vocab>("vocab_ensure", { projectId, category, label }),
     projectList: () => call<ProjectSummary[]>("project_list"),
     projectCreate: (name, description) => call("project_create", { name, description }),
     projectOpen: (id) => call("project_open", { id }),
     projectUpdate: (id, name, description) => call("project_update", { id, name, description }),
     async projectClose(id) {
       await call("project_close", { id })
+    },
+    async projectDelete(id) {
+      await call("project_delete", { id })
     },
     characterList: (projectId) => call("character_list", { projectId }),
     characterCreate: (projectId, name) => call("character_create", { projectId, name }),
@@ -130,6 +139,7 @@ export function createInvokeRepository(): StoryRepository {
       await call("story_arc_delete", { projectId, id })
     },
     arcSetEvents: (projectId, id, eventIds) => call("story_arc_set_events", { projectId, id, eventIds }),
+    arcReorder: (projectId, ids) => call("story_arc_reorder", { projectId, ids }),
     chapterList: (projectId) => call("chapter_list", { projectId }),
     chapterCreate: (projectId, title) => call("chapter_create", { projectId, title }),
     chapterUpdate: (projectId, chapter) =>
@@ -160,6 +170,7 @@ export function createInvokeRepository(): StoryRepository {
     async sceneDelete(projectId, id) {
       await call("scene_delete", { projectId, id })
     },
+    sceneReorder: (projectId, chapterId, ids) => call("scene_reorder", { projectId, chapterId, ids }),
     noteList: (projectId) => call("note_list", { projectId }),
     noteCreate: (projectId, title) => call("note_create", { projectId, title }),
     noteUpdate: (projectId, note) =>
@@ -173,6 +184,7 @@ export function createInvokeRepository(): StoryRepository {
     async noteDelete(projectId, id) {
       await call("note_delete", { projectId, id })
     },
+    noteReorder: (projectId, ids) => call<Note[]>("note_reorder", { projectId, ids }),
     search: (projectId, query) => call<SearchHit[]>("search_query", { projectId, query }),
     backupCreate: (projectId) => call<Snapshot>("backup_create", { projectId }),
     backupList: (projectId) => call("backup_list", { projectId }),

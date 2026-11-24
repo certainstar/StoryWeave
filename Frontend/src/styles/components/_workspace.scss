@@ -1,0 +1,105 @@
+.create-dock {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 45;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+  pointer-events: none;
+  touch-action: none;
+  user-select: none;
+}
+
+.create-dock.is-custom-pos {
+  right: auto;
+  bottom: auto;
+}
+
+.create-dock.is-dragging .create-fab {
+  cursor: grabbing;
+  transform: scale(1.03);
+  box-shadow: 0 12px 28px color-mix(in srgb, var(--ink) 18%, transparent);
+}
+
+.create-dock > * {
+  pointer-events: auto;
+}
+
+.create-fab {
+  border: 1px solid color-mix(in srgb, var(--seal) 55%, var(--line));
+  background: linear-gradient(145deg, color-mix(in srgb, var(--seal) 92%, #000), var(--seal));
+  color: #fffaf6;
+  border-radius: 999px;
+  padding: 10px 20px;
+  box-shadow: var(--shadow);
+  font-family: var(--serif);
+  letter-spacing: 0.14em;
+  cursor: grab;
+  transition: transform 0.14s ease, box-shadow 0.14s ease;
+}
+
+.create-fab-glyph {
+  font-size: 14px;
+}
+
+.create-menu {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(72px, 1fr));
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: calc(var(--radius) + 4px);
+  background: color-mix(in srgb, var(--sheet) 94%, transparent);
+  backdrop-filter: blur(14px);
+  box-shadow: var(--shadow);
+}
+
+.create-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 8px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--sheet);
+  font-size: 13px;
+}
+
+.create-item:hover {
+  border-color: color-mix(in srgb, var(--seal) 45%, var(--line));
+  transform: translateY(-1px);
+}
+
+.create-hint {
+  font-family: var(--serif);
+  color: var(--seal);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+}
+
+.dock-rise-enter-active,
+.dock-rise-leave-active {
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.dock-rise-enter-from,
+.dock-rise-leave-to {
+  opacity: 0;
+  transform: translateY(8px) scale(0.98);
+}
+
+.editor-shell.is-focus .editor-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.editor-meta {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}

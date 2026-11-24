@@ -1,32 +1,36 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from "vue"
+import { computed, onMounted, onUnmounted, ref, watch } from "vue"
 import { useRoute, useRouter } from "vue-router"
-import { VIEWS, type ViewId } from "../../domain/types"
+import AppIcon from "../../components/ui/AppIcon.vue"
+import UiTooltip from "../../components/ui/UiTooltip.vue"
+import { VIEWS } from "../../domain/types"
+import RelationCreateModal from "../graph/RelationCreateModal.vue"
+import SettingsLayout from "../settings/SettingsLayout.vue"
 import { useWorkspace } from "../../stores/workspace"
 import InspectorPanel from "./InspectorPanel.vue"
+import { provideInspector } from "./inspectorContext"
+import QuickCreateDock from "./QuickCreateDock.vue"
+import TopSearch from "./TopSearch.vue"
+import { handleViewShortcut, viewShortcutLabel } from "./viewShortcuts"
 
 const store = useWorkspace()
 const route = useRoute()
 const router = useRouter()
-const query = ref("")
-let searchTimer = 0
+const navExpanded = ref(window.innerWidth > 900)
+const inspectorOpen = ref(false)
 
-const nav = VIEWS.filter((view) => view.id !== "settings")
+const nav = VIEWS
 const current = computed(() => String(route.name ?? ""))
+const isSettings = computed(() => current.value === "settings")
 
-const kindView: Record<string, ViewId> = {
-  character: "characters",
-  event: "timeline",
-  arc: "arcs",
-  chapter: "chapters",
-  note: "notes",
-}
-const kindLabel: Record<string, string> = {
-  character: "人物",
-  event: "事件",
-  arc: "故事线",
-  chapter: "章节",
-  note: "笔记",
+const shellClass = computed(() => ({
+  "is-nav-collapsed": !navExpanded.value,
+  "is-nav-expanded": navExpanded.value,
+  "is-inspector-open": inspectorOpen.value,
+}))
+
+function onResize() {
+  navExpanded.value = window.innerWidth > 900
 }
 
 async function ensureProject(id: string) {
@@ -38,13 +42,50 @@ async function ensureProject(id: string) {
   }
 }
 
-// 加载当前路由的 ID 对应的项目。
+function onGlobalKey(event: KeyboardEvent) {
+  if (isSettings.value) return
+  handleViewShortcut(event, (view) => store.select(null, view))
+}
+
+function closeInspector() {
+  inspectorOpen.value = false
+}
+
+function openInspector() {
+  inspectorOpen.value = true
+}
+
+provideInspector({
+  open: openInspector,
+  close: closeInspector,
+  toggle: () => {
+    inspectorOpen.value = !inspectorOpen.value
+  },
+})
+
+function onWorkspacePointerDown(event: PointerEvent) {
+  if (!inspectorOpen.value) return
+  const target = event.target as HTMLElement
+  if (target.closest(".inspector")) return
+  if (target.closest(".topbar")) return
+  if (target.closest(".modal-backdrop")) return
+  if (target.closest(".create-dock")) return
+  closeInspector()
+}
+
 onMounted(() => {
+  onResize()
+  window.addEventListener("resize", onResize)
+  document.addEventListener("keydown", onGlobalKey)
   const id = String(route.params.id ?? "")
   if (id) void ensureProject(id)
 })
 
-// 监听项目 ID 变化，加载项目。
+onUnmounted(() => {
+  window.removeEventListener("resize", onResize)
+  document.removeEventListener("keydown", onGlobalKey)
+})
+
 watch(
   () => route.params.id,
   (id) => {
@@ -52,73 +93,84 @@ watch(
   },
 )
 
-function onSearch() {
-  window.clearTimeout(searchTimer)
-  searchTimer = window.setTimeout(() => {
-    void store.search(query.value)
-  }, 300)
-}
-
-function openHit(kind: string, id: string) {
-  const view = kindView[kind]
-  if (!view) return
-  store.searchOpen = false
-  query.value = ""
-  store.select({ kind: kind as "character", id }, view)
-}
+watch(
+  () => store.inspectorRequest,
+  () => {
+    openInspector()
+  },
+)
 </script>
 
 <template>
-  <div class="app">
+  <SettingsLayout v-if="isSettings">
+    <RouterView />
+  </SettingsLayout>
+  <div v-else class="app">
     <div v-if="store.recovery.needed" class="banner">
       <span>上次没有正常退出。可以恢复 {{ store.recovery.snapshotAt }} 的快照。</span>
       <button class="btn primary" type="button" @click="store.restoreRecovery()">恢复</button>
       <button class="btn" type="button" @click="store.dismissRecovery()">保持现状</button>
     </div>
     <header class="topbar">
-      <div class="brand">
-        <img class="mark" src="/icon.png" width="32" height="32" alt="">
-        <span class="brand-name">墨织</span>
-        <span class="project-name">{{ store.project?.name?.trim() || "未命名项目" }}</span>
+      <div class="brand brand-minimal">
+        <button class="btn nav-toggle" type="button" aria-label="展开导航" @click="navExpanded = !navExpanded">☰</button>
+        <span v-if="store.project" class="topbar-project" :title="store.project.name">{{ store.project.name }}</span>
       </div>
-      <div class="search-wrap">
-        <input
-          v-model="query"
-          class="search"
-          type="search"
-          placeholder="搜索人物、事件、章节和笔记"
-          aria-label="搜索人物、事件、章节和笔记"
-          autocomplete="off"
-          @input="onSearch"
-          @focus="onSearch"
-        >
-        <div v-if="store.searchOpen" class="search-results">
-          <p v-if="!store.searchHits.length" class="empty">没有匹配的记录。</p>
-          <button v-for="hit in store.searchHits" :key="`${hit.kind}:${hit.id}`" type="button" @click="openHit(hit.kind, hit.id)">
-            <span class="search-kind">{{ kindLabel[hit.kind] || hit.kind }}</span>
-            {{ hit.title }}
-          </button>
-        </div>
-      </div>
+      <TopSearch />
       <div class="top-actions">
         <span class="status">{{ store.statusLabel }}</span>
-        <button class="btn" type="button" :aria-pressed="store.theme === 'ink'" @click="store.setTheme(store.theme === 'ink' ? 'paper' : 'ink')">
-          {{ store.theme === "ink" ? "宣纸" : "夜墨" }}
-        </button>
-        <button class="btn" type="button" @click="router.push({ name: 'settings', params: { id: store.project?.id } })">设置</button>
+        <UiTooltip :label="inspectorOpen ? '收起详情' : '展开详情'" placement="bottom">
+          <button
+            class="icon-btn topbar-action-btn"
+            type="button"
+            :aria-label="inspectorOpen ? '收起详情' : '展开详情'"
+            :aria-pressed="inspectorOpen"
+            @click="inspectorOpen = !inspectorOpen"
+          >
+            <AppIcon name="panel-right" :size="20" :stroke-width="1.75" />
+          </button>
+        </UiTooltip>
+        <UiTooltip label="重选项目" placement="bottom">
+          <button class="icon-btn topbar-action-btn" type="button" aria-label="重选项目" @click="router.push({ name: 'home' })">
+            <AppIcon name="folder-open" :size="20" :stroke-width="1.75" />
+          </button>
+        </UiTooltip>
+        <UiTooltip :label="`切换主题（${store.themeLabel}）`" placement="bottom">
+          <button
+            class="icon-btn topbar-action-btn"
+            type="button"
+            :aria-label="`切换主题，当前 ${store.themeLabel}`"
+            @click="store.cycleTheme()"
+          >
+            <AppIcon name="palette" :size="20" :stroke-width="1.75" />
+          </button>
+        </UiTooltip>
+        <UiTooltip label="设置" placement="bottom">
+          <button
+            class="icon-btn topbar-action-btn"
+            type="button"
+            aria-label="设置"
+            @click="router.push({ name: 'settings', params: { id: store.project?.id } })"
+          >
+            <AppIcon name="settings" :size="20" :stroke-width="1.75" />
+          </button>
+        </UiTooltip>
       </div>
     </header>
-    <div class="shell">
+    <div class="shell" :class="shellClass" @pointerdown.capture="onWorkspacePointerDown">
       <nav class="nav" aria-label="工作区">
         <button
           v-for="view in nav"
           :key="view.id"
           type="button"
+          :title="`${view.label}（${viewShortcutLabel(view.index)}）`"
+          :aria-keyshortcuts="viewShortcutLabel(view.index)"
           :aria-current="current === view.id ? 'page' : undefined"
           @click="store.select(null, view.id)"
         >
+          <AppIcon :name="view.icon" :size="17" />
           <span class="nav-index">{{ view.index }}</span>
-          <span>{{ view.label }}</span>
+          <span class="nav-label">{{ view.label }}</span>
         </button>
       </nav>
       <main class="workspace">
@@ -126,11 +178,13 @@ function openHit(kind: string, id: string) {
           <RouterView />
         </div>
       </main>
-      <aside class="inspector" aria-label="详情">
+      <aside class="inspector" aria-label="详情" @pointerdown.stop>
         <div class="inspector-scroll">
           <InspectorPanel />
         </div>
       </aside>
     </div>
+    <QuickCreateDock v-if="store.project" />
   </div>
+  <RelationCreateModal />
 </template>

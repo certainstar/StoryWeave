@@ -89,6 +89,7 @@ export interface Note {
   title: string  // 笔记标题
   content: string  // 笔记内容
   tags: string[]  // 笔记标签
+  sortOrder: number  // 列表顺序
   createdAt: string  // 笔记创建时间
   updatedAt: string  // 笔记更新时间
 }
@@ -144,10 +145,13 @@ export interface Recovery {
 }
 
 /** 应用启动时界面需要的状态。 */
+export type LeaveDraft = "autosave" | "prompt" | "ignore"
+
 export interface AppStateDto {
   theme: string  // 主题
   recent: ProjectSummary[]  // 最近项目列表
   recovery: Recovery  // 恢复状态
+  leaveDraft: LeaveDraft  // 离开页面时的草稿策略
 }
 
 /** 已注册插件的名称。 */
@@ -156,6 +160,39 @@ export interface PluginInfo {
   name: string  // 插件名称
 }
 
+/** 下拉词表。 */
+export interface Vocab {
+  characterStatus: string[]
+  relationTypes: string[]
+  relationSpans: string[]
+  arcKinds: string[]
+  chapterStatus: string[]
+}
+
+/** 词表种类（界面用 camelCase，命令用 snake_case）。 */
+export type VocabCategory = keyof Vocab
+
+export const VOCAB_CATEGORY_REMOTE: Record<VocabCategory, string> = {
+  characterStatus: "character_status",
+  relationTypes: "relation_types",
+  relationSpans: "relation_spans",
+  arcKinds: "arc_kinds",
+  chapterStatus: "chapter_status",
+}
+
+export type ThemeId = "paper" | "ink" | "fourgentlemen" | "mountain" | "dragon"
+
+export type ViewIconId =
+  | "layout-dashboard"
+  | "users"
+  | "git-branch"
+  | "layers"
+  | "calendar-clock"
+  | "book-open"
+  | "sticky-note"
+  | "settings"
+  | "book-text"
+
 export const CHARACTER_STATUS = ["在场", "场外", "下落不明", "已故", "暗处", "虚拟", "待定"] as const
 export const RELATION_TYPES = ["家人", "师徒", "暗恋", "明恋", "合作", "仇敌", "利用", "同门", "旧识", "心结", "恩怨", "伴侣", "待定"] as const
 export const RELATION_SPANS = ["当前", "过去", "未来", "待定"] as const
@@ -163,14 +200,17 @@ export const ARC_KINDS = ["主线", "支线", "人物线", "感情线", "待定"
 export const CHAPTER_STATUS = ["构思中", "草稿", "修订中", "完成", "待定"] as const
 
 export const VIEWS = [
-  { id: "overview", index: "01", label: "概览", blurb: "人物、关系、事件和章节从这里连在一起。" },
-  { id: "characters", index: "02", label: "人物", blurb: "人物档案是关系图和章节引用的来源。" },
-  { id: "graph", index: "03", label: "关系图", blurb: "拖动节点只改变布局。布局与人物资料分开保存。" },
-  { id: "arcs", index: "04", label: "故事线", blurb: "故事线排列事件的叙事顺序，不改写事件本身。" },
-  { id: "timeline", index: "05", label: "时间线", blurb: "这里按故事内顺序排列。它不必和章节顺序相同。" },
-  { id: "chapters", index: "06", label: "章节", blurb: "正文按 Markdown 原文保存，右侧是预览。" },
-  { id: "notes", index: "07", label: "笔记", blurb: "保存灵感、思考和未尽事宜。" },
-  { id: "settings", index: "08", label: "设置", blurb: "主题、快照和插件都留在这台电脑上。" },
+  { id: "overview", index: "01", label: "概览", icon: "layout-dashboard" as ViewIconId, blurb: "人物、关系、事件和章节从这里连在一起。" },
+  { id: "characters", index: "02", label: "人物", icon: "users" as ViewIconId, blurb: "人物档案是关系图和章节引用的来源。" },
+  { id: "graph", index: "03", label: "关系图", icon: "git-branch" as ViewIconId, blurb: "拖动节点只改变布局。布局与人物资料分开保存。" },
+  { id: "arcs", index: "04", label: "故事线", icon: "layers" as ViewIconId, blurb: "故事线排列事件的叙事顺序，不改写事件本身。" },
+  { id: "timeline", index: "05", label: "时间线", icon: "calendar-clock" as ViewIconId, blurb: "这里按故事内顺序排列。它不必和章节顺序相同。" },
+  { id: "chapters", index: "06", label: "章节", icon: "book-open" as ViewIconId, blurb: "正文按 Markdown 原文保存，右侧可实时预览。" },
+  { id: "notes", index: "07", label: "笔记", icon: "sticky-note" as ViewIconId, blurb: "保存灵感、思考和未尽事宜。" },
+  { id: "reader", index: "08", label: "翻阅", icon: "book-text" as ViewIconId, blurb: "全书连续阅读，按章节顺序分页翻页。" },
 ] as const
 
 export type ViewId = (typeof VIEWS)[number]["id"]
+
+/** 仅通过顶栏进入，不在侧栏序号里。 */
+export type AppRouteName = ViewId | "settings" | "home" | "overview"

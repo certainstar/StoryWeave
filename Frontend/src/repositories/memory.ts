@@ -1,9 +1,5 @@
+import { DEFAULT_VOCAB, mergeVocab } from "../domain/vocab"
 import {
-  ARC_KINDS,
-  CHAPTER_STATUS,
-  CHARACTER_STATUS,
-  RELATION_SPANS,
-  RELATION_TYPES,
   type Chapter,
   type Character,
   type GraphLayout,
@@ -14,6 +10,7 @@ import {
   type Snapshot,
   type StoryArc,
   type StoryEvent,
+  type Vocab,
 } from "../domain/types"
 import { ApiError, notFound, validation } from "./errors"
 import type { StoryRepository } from "./story"
@@ -46,11 +43,13 @@ interface StoredProject {
   notes: Note[]  // 笔记列表
   layout: GraphLayout  // 图谱布局
   snapshots: Array<{ snapshotAt: string; body: SnapshotBody }>  // 快照列表
+  vocabExtras?: Partial<Vocab>  // 项目自定义词表
 }
 
 /** 存储文件。 */
 interface MemoryFile {
   theme: string  // 主题
+  leaveDraft?: "autosave" | "prompt" | "ignore"
   clean: boolean  // 表示当前页面即将隐藏或离开当前页面
   recoverySkip: string  // 恢复跳过令牌
   sessionRead: boolean  // 标记session是否已读取
@@ -112,14 +111,20 @@ export function createMemoryRepository(): StoryRepository {
       const recovery = !previous && snapshot && token !== file.recoverySkip  // 如果上次退出不完整且有快照且令牌不等于恢复跳过令牌，则需要恢复
         ? { needed: true, projectId: first.id, snapshotAt: snapshot.snapshotAt }
         : { needed: false, projectId: null, snapshotAt: null }
-      return { 
-        theme: file.theme, 
-        recent, 
+      return {
+        theme: file.theme,
+        recent,
         recovery,
+        leaveDraft: file.leaveDraft ?? "autosave",
       }
     },
+    async appSetLeaveDraft(leaveDraft) {
+      oneOf(leaveDraft, ["autosave", "prompt", "ignore"], "UNKNOWN_STATUS", "请选择一种离开策略～")
+      file.leaveDraft = leaveDraft
+      persist()
+    },
     async appSetTheme(theme) {
-      oneOf(theme, ["paper", "ink"], "UNKNOWN_STATUS", "当前主题仅支持宣纸和夜墨～")  // 确保主题在允许的列表中
+      oneOf(theme, ["paper", "ink", "fourgentlemen", "mountain", "dragon"], "UNKNOWN_STATUS", "当前主题不支持～")
       file.theme = theme
       persist()
       return theme
@@ -131,6 +136,33 @@ export function createMemoryRepository(): StoryRepository {
     async pluginList() {
       // TODO 实现读取已注册的进程内插件，当前只返回示例插槽。
       return [{ id: "sample", name: "示例插槽" }]  // 返回示例插槽，用于演示插件功能
+    },
+    async vocabList() {
+      return { ...DEFAULT_VOCAB }
+    },
+    async vocabListForProject(projectId) {
+      const item = project(projectId)
+      return mergeVocab(item.vocabExtras)
+    },
+    async vocabEnsure(projectId, category, label) {
+      const item = project(projectId)
+      const trimmed = label.trim()
+      if (!trimmed) validation("EMPTY_NAME", "标签不能为空")
+      const key =
+        category === "character_status"
+          ? "characterStatus"
+          : category === "relation_types"
+            ? "relationTypes"
+            : category === "relation_spans"
+              ? "relationSpans"
+              : category === "arc_kinds"
+                ? "arcKinds"
+                : "chapterStatus"
+      if (!item.vocabExtras) item.vocabExtras = {}
+      const prev = item.vocabExtras[key] ?? []
+      item.vocabExtras[key] = [trimmed, ...prev.filter((entry: string) => entry !== trimmed)]
+      persist()
+      return mergeVocab(item.vocabExtras)
     },
     async projectList() {
       return [...file.projects].map((item) => item.summary).sort((a, b) => b.lastOpenedAt.localeCompare(a.lastOpenedAt))
@@ -168,6 +200,12 @@ export function createMemoryRepository(): StoryRepository {
       // 网页版没有关闭项目库的功能，所以返回 undefined
       return undefined
     },
+    async projectDelete(id) {
+      const before = file.projects.length
+      file.projects = file.projects.filter((item) => item.summary.id !== id)
+      if (file.projects.length === before) throw notFound()
+      persist()
+    },
     async characterList(projectId) {
       return project(projectId).characters
     },
@@ -196,7 +234,7 @@ export function createMemoryRepository(): StoryRepository {
       const item = project(projectId)
       const index = item.characters.findIndex((entry) => entry.id === character.id)
       if (index < 0) throw notFound()
-      oneOf(character.status, CHARACTER_STATUS, "UNKNOWN_STATUS", "请选择一种人物状态～")
+      oneOf(character.status, DEFAULT_VOCAB.characterStatus, "UNKNOWN_STATUS", "请选择一种人物状态～")
       const next = { ...character, name: requireText(character.name), updatedAt: now() }
       item.characters[index] = next
       touch(item)
@@ -318,7 +356,7 @@ export function createMemoryRepository(): StoryRepository {
     },
     async arcCreate(projectId, title, kind = "支线") {
       const item = project(projectId)
-      oneOf(kind, ARC_KINDS, "UNKNOWN_KIND", "请选择一种故事线～")
+      oneOf(kind, DEFAULT_VOCAB.arcKinds, "UNKNOWN_KIND", "请选择一种故事线～")
       const stamp = now()
       const arc: StoryArc = {
         id: uid(),
@@ -338,7 +376,7 @@ export function createMemoryRepository(): StoryRepository {
       const item = project(projectId)
       const index = item.arcs.findIndex((entry) => entry.id === arc.id)
       if (index < 0) throw notFound()
-      oneOf(arc.kind, ARC_KINDS, "UNKNOWN_KIND", "请选择一种故事线～")
+      oneOf(arc.kind, DEFAULT_VOCAB.arcKinds, "UNKNOWN_KIND", "请选择一种故事线～")
       const next = { ...item.arcs[index], title: requireText(arc.title), kind: arc.kind, summary: arc.summary, updatedAt: now() }
       item.arcs[index] = next
       touch(item)
@@ -363,6 +401,16 @@ export function createMemoryRepository(): StoryRepository {
       arc.updatedAt = now()
       touch(item)
       return arc
+    },
+    async arcReorder(projectId, ids) {
+      const item = project(projectId)
+      permute(item.arcs.map((arc) => arc.id), ids)
+      ids.forEach((id, index) => {
+        const arc = item.arcs.find((entry) => entry.id === id)
+        if (arc) arc.sortOrder = index + 1
+      })
+      touch(item)
+      return [...item.arcs].sort((a, b) => a.sortOrder - b.sortOrder)
     },
     async chapterList(projectId) {
       return [...project(projectId).chapters].sort((a, b) => a.sortOrder - b.sortOrder)
@@ -390,7 +438,7 @@ export function createMemoryRepository(): StoryRepository {
       const item = project(projectId)
       const index = item.chapters.findIndex((entry) => entry.id === chapter.id)
       if (index < 0) throw notFound()
-      oneOf(chapter.status, CHAPTER_STATUS, "UNKNOWN_STATUS", "请选择一种状态～")
+      oneOf(chapter.status, DEFAULT_VOCAB.chapterStatus, "UNKNOWN_STATUS", "请选择一种状态～")
       if (new Set(chapter.characterIds).size !== chapter.characterIds.length) throw validation("DUPLICATE_LINK", "人物已经在里面了~")
       if (new Set(chapter.eventIds).size !== chapter.eventIds.length) throw validation("DUPLICATE_LINK", "事件已经在里面了~")
       const next = { ...chapter, title: requireText(chapter.title), updatedAt: now() }
@@ -455,21 +503,36 @@ export function createMemoryRepository(): StoryRepository {
       if (item.scenes.length === before) throw notFound()
       touch(item)
     },
+    async sceneReorder(projectId, chapterId, ids) {
+      const item = project(projectId)
+      const existing = item.scenes.filter((entry) => entry.chapterId === chapterId)
+      if (existing.length !== ids.length || !ids.every((id) => existing.some((entry) => entry.id === id))) {
+        throw validation("INVALID_ORDER", "场景顺序不完整～")
+      }
+      const map = new Map(existing.map((entry) => [entry.id, entry]))
+      ids.forEach((id, index) => {
+        const scene = map.get(id)
+        if (scene) scene.sortOrder = index + 1
+      })
+      touch(item)
+      return item.scenes.filter((entry) => entry.chapterId === chapterId).sort((a, b) => a.sortOrder - b.sortOrder)
+    },
     async noteList(projectId) {
-      return project(projectId).notes
+      return [...project(projectId).notes].sort((a, b) => a.sortOrder - b.sortOrder)
     },
     async noteCreate(projectId, title) {
       const item = project(projectId)
       const stamp = now()
-      const note: Note = { 
-        id: uid(), 
-        title: requireText(title), 
-        content: "", 
-        tags: [], 
-        createdAt: stamp, 
+      const note: Note = {
+        id: uid(),
+        title: requireText(title),
+        content: "",
+        tags: [],
+        sortOrder: nextSort(item.notes),
+        createdAt: stamp,
         updatedAt: stamp,
       }
-      item.notes.unshift(note)
+      item.notes.push(note)
       touch(item)
       return note
     },
@@ -488,6 +551,16 @@ export function createMemoryRepository(): StoryRepository {
       item.notes = item.notes.filter((entry) => entry.id !== id)
       if (item.notes.length === before) throw notFound()
       touch(item)
+    },
+    async noteReorder(projectId, ids) {
+      const item = project(projectId)
+      permute(item.notes.map((note) => note.id), ids)
+      ids.forEach((id, index) => {
+        const note = item.notes.find((entry) => entry.id === id)
+        if (note) note.sortOrder = index + 1
+      })
+      touch(item)
+      return [...item.notes].sort((a, b) => a.sortOrder - b.sortOrder)
     },
     async search(projectId, query) {
       const needle = query.trim().toLowerCase()
@@ -549,8 +622,8 @@ export function createMemoryRepository(): StoryRepository {
     if (sourceId === targetId) throw validation("SELF_RELATION", "不能把人物连向自己～")
     if (!item.characters.some((character) => character.id === sourceId)) throw notFound()  // 如果源人物不存在，则抛出错误
     if (!item.characters.some((character) => character.id === targetId)) throw notFound()  // 如果目标人物不存在，则抛出错误
-    oneOf(type, RELATION_TYPES, "UNKNOWN_TYPE", "请选择一种关系类型～")
-    oneOf(span, RELATION_SPANS, "UNKNOWN_STATUS", "选择一种关系持续时间～")
+    oneOf(type, DEFAULT_VOCAB.relationTypes, "UNKNOWN_TYPE", "请选择一种关系类型～")
+    oneOf(span, DEFAULT_VOCAB.relationSpans, "UNKNOWN_STATUS", "选择一种关系持续时间～")
   }
 }
 

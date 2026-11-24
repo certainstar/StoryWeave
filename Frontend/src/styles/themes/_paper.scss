@@ -1,0 +1,22 @@
+:root,
+:root[data-theme="paper"] {
+  --paper: #f3eee6;
+  --sheet: #fbf7f0;
+  --ink: #1c1915;
+  --muted: #6d6560;
+  --line: #e4d8c8;
+  --rule: #2a2622;
+  --seal: #c23b32;
+  --wash: rgba(28, 25, 21, 0.05);
+  --shadow: 0 10px 28px rgba(48, 32, 18, 0.06);
+  --topbar-bg: color-mix(in srgb, var(--sheet) 94%, var(--paper));
+  --topbar-border: var(--line);
+  color-scheme: light;
+}
+
+html[data-theme="paper"]::before {
+  background:
+    url("/themes/paper/bg.jpg") center / cover no-repeat fixed,
+    linear-gradient(color-mix(in srgb, var(--paper) 55%, transparent), color-mix(in srgb, var(--paper) 78%, transparent)),
+    var(--paper);
+}

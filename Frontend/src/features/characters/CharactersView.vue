@@ -1,59 +1,69 @@
 <script setup lang="ts">
-import { computed } from "vue"
-import { CHARACTER_STATUS } from "../../domain/types"
+import { computed, useTemplateRef } from "vue"
+import { handleGridArrowKey } from "../../domain/gridKeyboard"
+import SwSelect from "../../components/ui/SwSelect.vue"
 import { useWorkspace } from "../../stores/workspace"
 import PageHead from "../shell/PageHead.vue"
+import CharacterCard from "./CharacterCard.vue"
+import { filterCharacters } from "./characterHelpers"
 
 const store = useWorkspace()
 
-/** 获取人物列表。 
- * 
- * @param query 查询条件。
- * 
- * @returns 人物列表。
-*/
-const rows = computed(() => {
-  const query = store.characterFilter.trim().toLowerCase()
-  return store.characters.filter((character) => {
-    const statusOk = store.statusFilter === "全部" || character.status === store.statusFilter
-    const text = `${character.name} ${character.aliases.join(" ")}`.toLowerCase()
-    return statusOk && (!query || text.includes(query))
-  })
+const grid = useTemplateRef("grid")
+const rows = computed(() => filterCharacters(store.characters, store.statusFilter, store.characterFilter))
+
+const statusOptions = computed(() => {
+  const set = new Set(store.vocab.characterStatus)
+  for (const person of store.characters) {
+    if (person.status) set.add(person.status)
+  }
+  return ["全部", ...set]
 })
+
+function onGridKey(event: KeyboardEvent) {
+  const current = store.selection?.kind === "character" ? store.selection.id : undefined
+  handleGridArrowKey(event, rows.value.map((row) => row.id), current, 1, (id) => {
+    store.select({ kind: "character", id })
+    grid.value?.querySelector(`[data-id="${id}"]`)?.scrollIntoView({ block: "nearest" })
+  })
+}
 </script>
 
 <template>
   <PageHead view="characters" :meta="`${rows.length} / ${store.characters.length} 人`" />
   <div class="toolbar">
     <button class="btn primary" type="button" @click="store.createCharacter()">新增人物</button>
-    <select aria-label="按状态筛选" :value="store.statusFilter" @change="store.statusFilter = ($event.target as HTMLSelectElement).value">
-      <option>全部</option>
-      <option v-for="status in CHARACTER_STATUS" :key="status">{{ status }}</option>
-    </select>
+    <SwSelect
+      id="character-status-filter"
+      :model-value="store.statusFilter"
+      :options="statusOptions"
+      aria-label="按状态筛选"
+      @update:model-value="store.statusFilter = $event"
+    />
     <input
       :value="store.characterFilter"
-      type="text"
+      type="search"
       placeholder="按姓名或别名筛选"
       aria-label="按姓名或别名筛选"
       @input="store.characterFilter = ($event.target as HTMLInputElement).value"
     >
   </div>
-  <table class="table">
-    <thead><tr><th>姓名</th><th>身份</th><th>状态</th><th>目标</th></tr></thead>
-    <tbody>
-      <tr v-if="!rows.length"><td colspan="4">没有匹配的人物。</td></tr>
-      <tr
-        v-for="character in rows"
-        :key="character.id"
-        tabindex="0"
-        :aria-selected="store.selection?.kind === 'character' && store.selection.id === character.id"
-        @click="store.select({ kind: 'character', id: character.id })"
-      >
-        <td>{{ character.name }}</td>
-        <td>{{ character.role || "未填写" }}</td>
-        <td>{{ character.status }}</td>
-        <td>{{ character.goal || "未填写" }}</td>
-      </tr>
-    </tbody>
-  </table>
+  <p v-if="!rows.length" class="empty">没有匹配的人物。</p>
+  <div
+    v-else
+    ref="grid"
+    class="char-grid"
+    tabindex="0"
+    aria-label="人物列表"
+    @keydown="onGridKey"
+  >
+    <CharacterCard
+      v-for="character in rows"
+      :key="character.id"
+      :data-id="character.id"
+      :character="character"
+      :selected="store.selection?.kind === 'character' && store.selection.id === character.id"
+      @select="store.select({ kind: 'character', id: character.id })"
+    />
+  </div>
 </template>

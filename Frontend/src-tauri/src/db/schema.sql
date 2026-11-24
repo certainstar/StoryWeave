@@ -5,6 +5,13 @@ CREATE TABLE IF NOT EXISTS schema_migrations (
     applied_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS project_vocab (
+    category TEXT NOT NULL,
+    label TEXT NOT NULL,
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (category, label)
+);
+
 CREATE TABLE IF NOT EXISTS project_meta (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
@@ -25,8 +32,7 @@ CREATE TABLE IF NOT EXISTS characters (
     notes TEXT NOT NULL DEFAULT '',
     status TEXT NOT NULL DEFAULT '在场',
     created_at TEXT NOT NULL,
-    updated_at TEXT NOT NULL,
-    CHECK (status IN ('在场', '离场', '下落不明'))
+    updated_at TEXT NOT NULL
 );
 
 CREATE INDEX IF NOT EXISTS idx_characters_name ON characters(name);
@@ -38,12 +44,10 @@ CREATE TABLE IF NOT EXISTS relations (
     type TEXT NOT NULL,
     description TEXT NOT NULL DEFAULT '',
     is_directional INTEGER NOT NULL DEFAULT 1,
-    span TEXT NOT NULL DEFAULT '未知',
+    span TEXT NOT NULL DEFAULT '待定',
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
     CHECK (source_id <> target_id),
-    CHECK (type IN ('亲属', '师徒', '恋爱', '合作', '敌对', '利用', '同门', '旧识', '未知')),
-    CHECK (span IN ('当前', '过去', '未知')),
     FOREIGN KEY (source_id) REFERENCES characters(id) ON DELETE CASCADE,
     FOREIGN KEY (target_id) REFERENCES characters(id) ON DELETE CASCADE
 );
@@ -79,8 +83,7 @@ CREATE TABLE IF NOT EXISTS story_arcs (
     summary TEXT NOT NULL DEFAULT '',
     sort_order INTEGER NOT NULL,
     created_at TEXT NOT NULL,
-    updated_at TEXT NOT NULL,
-    CHECK (kind IN ('主线', '支线', '人物线', '感情线'))
+    updated_at TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS arc_events (
@@ -100,8 +103,7 @@ CREATE TABLE IF NOT EXISTS chapters (
     content TEXT NOT NULL DEFAULT '',
     sort_order INTEGER NOT NULL,
     created_at TEXT NOT NULL,
-    updated_at TEXT NOT NULL,
-    CHECK (status IN ('构思中', '草稿', '修订中', '完成'))
+    updated_at TEXT NOT NULL
 );
 
 CREATE INDEX IF NOT EXISTS idx_chapters_sort ON chapters(sort_order);
@@ -141,6 +143,7 @@ CREATE TABLE IF NOT EXISTS notes (
     title TEXT NOT NULL,
     content TEXT NOT NULL DEFAULT '',
     tags_json TEXT NOT NULL DEFAULT '[]',
+    sort_order INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
 );

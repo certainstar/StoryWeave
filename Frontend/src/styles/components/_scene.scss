@@ -1,0 +1,113 @@
+.scene-chain {
+  margin: 20px 0;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--seal) 4%, transparent), transparent 55%),
+    var(--sheet);
+}
+
+.scene-chain-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.scene-chain-head h3 {
+  margin: 0;
+  font-family: var(--serif);
+  letter-spacing: 0.12em;
+  font-size: 16px;
+}
+
+.scene-track {
+  position: relative;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  outline: none;
+}
+
+.scene-track::before {
+  content: "";
+  position: absolute;
+  left: 24px;
+  right: 24px;
+  top: 28px;
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--seal) 45%, var(--line)), transparent);
+  pointer-events: none;
+}
+
+.scene-track:focus-visible {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--seal) 20%, transparent);
+  border-radius: var(--radius);
+}
+
+.scene-card {
+  flex: 0 0 200px;
+  display: flex;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--sheet) 92%, transparent);
+  box-shadow: var(--shadow);
+  cursor: grab;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+}
+
+.scene-card:hover {
+  border-color: color-mix(in srgb, var(--seal) 30%, var(--line));
+}
+
+.scene-card:active {
+  transform: scale(0.98);
+}
+
+.scene-card.is-dragging {
+  opacity: 0.55;
+  cursor: grabbing;
+}
+
+.scene-card[aria-selected="true"] {
+  border-color: var(--seal);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--seal) 16%, transparent), var(--shadow);
+}
+
+.scene-index {
+  font-family: var(--serif);
+  color: var(--seal);
+  font-size: 18px;
+  line-height: 1;
+}
+
+.scene-body strong {
+  display: block;
+  margin-bottom: 4px;
+  font-family: var(--serif);
+}
+
+.scene-when {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.scene-nudge {
+  display: flex;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.scene-nudge .btn {
+  padding: 2px 8px;
+  font-size: 12px;
+}

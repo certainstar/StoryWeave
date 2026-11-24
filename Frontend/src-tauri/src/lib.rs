@@ -7,6 +7,7 @@ mod error;
 mod models;
 mod plugins;
 mod state;
+mod vocab;
 
 use state::{app_db_path, AppState};
 use tauri::Manager;
@@ -35,13 +36,18 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::app_get_state,
             commands::app_set_theme,
+            commands::app_set_leave_draft,
             commands::app_dismiss_recovery,
             commands::plugin_list,
+            commands::vocab_list,
+            commands::vocab_list_for_project,
+            commands::vocab_ensure,
             commands::project_list,
             commands::project_create,
             commands::project_open,
             commands::project_update,
             commands::project_close,
+            commands::project_delete,
             commands::character_list,
             commands::character_create,
             commands::character_update,
@@ -62,6 +68,7 @@ pub fn run() {
             commands::story_arc_update,
             commands::story_arc_delete,
             commands::story_arc_set_events,
+            commands::story_arc_reorder,
             commands::chapter_list,
             commands::chapter_create,
             commands::chapter_update,
@@ -71,10 +78,12 @@ pub fn run() {
             commands::scene_create,
             commands::scene_update,
             commands::scene_delete,
+            commands::scene_reorder,
             commands::note_list,
             commands::note_create,
             commands::note_update,
             commands::note_delete,
+            commands::note_reorder,
             commands::search_query,
             commands::backup_create,
             commands::backup_list,

@@ -12,7 +12,13 @@ defineProps<{ data: { name: string; role: string; index: string }; selected?: bo
 </script>
 
 <template>
-  <div class="flow-node" :class="{ 'is-selected': selected }">
+  <div
+    class="flow-node"
+    role="group"
+    :class="{ 'is-selected': selected }"
+    :aria-label="`${data.name}，${data.role || '未填写身份'}`"
+    :aria-current="selected ? 'true' : undefined"
+  >
     <Handle type="target" :position="Position.Top" />
     <span class="node-index">{{ data.index }}</span>
     <strong class="node-name">{{ data.name }}</strong>

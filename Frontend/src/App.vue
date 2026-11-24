@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from "vue"
+import FeedbackHost from "./components/ui/FeedbackHost.vue"
 import { useWorkspace } from "./stores/workspace"
 
 const store = useWorkspace()
@@ -20,4 +21,5 @@ onMounted(async () => {
   <p class="narrow-note">墨织提示: 窗口宽度达到 960 像素以上使用效果更佳～</p>
   <p v-if="bootError" class="boot-error">{{ bootError }}</p>
   <RouterView />
+  <FeedbackHost />
 </template>

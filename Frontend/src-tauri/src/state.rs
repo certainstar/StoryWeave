@@ -186,6 +186,13 @@ impl AppState {
         let Some(snapshot_at) = snapshot_at else {
             return Ok(Recovery { needed: false, project_id: None, snapshot_at: None });
         };
+        let app = self.app.lock().map_err(|_| ApiError::storage())?;
+        if let Ok(summary) = db::get_project(&app, &project_id) {
+            if snapshot_at <= summary.updated_at {
+                return Ok(Recovery { needed: false, project_id: None, snapshot_at: None });
+            }
+        }
+        drop(app);
         let token = format!("{project_id}:{snapshot_at}");
         if skip == token {
             return Ok(Recovery { needed: false, project_id: None, snapshot_at: None });

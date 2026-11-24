@@ -19,17 +19,28 @@ pub fn app_get_state(state: State<'_, AppState>) -> CommandResult<AppStateDto> {
         let app = state.app.lock().map_err(|_| crate::error::ApiError::storage())?;
         let theme = db::theme(&app)?;
         let recent = db::list_projects(&app)?;
+        let leave_draft = db::leave_draft(&app)?;
         drop(app);
         let recovery = state.recovery(previous_clean)?;
-        Ok(AppStateDto { theme, recent, recovery })
+        Ok(AppStateDto {
+            theme,
+            recent,
+            recovery,
+            leave_draft,
+        })
+    })())
+}
+
+/// 保存离开页面时的草稿策略。
+#[tauri::command(rename_all = "camelCase")]
+pub fn app_set_leave_draft(state: State<'_, AppState>, leave_draft: String) -> CommandResult<serde_json::Value> {
+    CommandResult::from_result((|| {
+        let app = state.app.lock().map_err(|_| crate::error::ApiError::storage())?;
+        Ok(serde_json::json!({ "leaveDraft": db::set_leave_draft(&app, &leave_draft)? }))
     })())
 }
 
 /// 保存主题。
-///
-/// * `theme` - `paper` 或 `ink`。
-///
-/// 返回保存后的主题。其他取值返回 `VALIDATION_ERROR`。
 #[tauri::command]
 pub fn app_set_theme(state: State<'_, AppState>, theme: String) -> CommandResult<ThemeSet> {
     CommandResult::from_result((|| {
@@ -63,6 +74,35 @@ pub fn app_dismiss_recovery(
 #[tauri::command]
 pub fn plugin_list(state: State<'_, AppState>) -> CommandResult<Vec<crate::plugins::PluginInfo>> {
     CommandResult::ok(state.plugins.list())
+}
+
+/// 读取下拉词表。与写入校验使用同一份列表。
+#[tauri::command]
+pub fn vocab_list() -> CommandResult<crate::models::VocabDto> {
+    CommandResult::ok(crate::vocab::list())
+}
+
+/// 读取预设与本项目自定义合并后的词表。
+#[tauri::command(rename_all = "camelCase")]
+pub fn vocab_list_for_project(
+    state: State<'_, AppState>,
+    project_id: String,
+) -> CommandResult<crate::models::VocabDto> {
+    CommandResult::from_result(state.with_project(&project_id, db::list_vocab))
+}
+
+/// 保存自定义词条到项目词表并返回最新列表。
+#[tauri::command(rename_all = "camelCase")]
+pub fn vocab_ensure(
+    state: State<'_, AppState>,
+    project_id: String,
+    category: String,
+    label: String,
+) -> CommandResult<crate::models::VocabDto> {
+    CommandResult::from_result(state.with_project(&project_id, |conn| {
+        db::ensure_label(conn, &category, &label)?;
+        db::list_vocab(conn)
+    }))
 }
 
 /// 最近项目，最近打开的在前。
@@ -136,6 +176,18 @@ pub fn project_update(
 #[tauri::command]
 pub fn project_close(state: State<'_, AppState>, id: String) -> CommandResult<Closed> {
     CommandResult::from_result(state.close_project(&id).map(|_| Closed { closed: true }))
+}
+
+/// 删除项目及其快照。
+#[tauri::command(rename_all = "camelCase")]
+pub fn project_delete(state: State<'_, AppState>, id: String) -> CommandResult<Deleted> {
+    CommandResult::from_result((|| {
+        let _ = state.close_project(&id);
+        let data_dir = state.data_dir.clone();
+        let app = state.app.lock().map_err(|_| crate::error::ApiError::storage())?;
+        db::delete_project(&app, &data_dir, &id)?;
+        Ok(Deleted { deleted_id: id })
+    })())
 }
 
 /// 人物列表。
@@ -410,6 +462,12 @@ pub fn story_arc_delete(state: State<'_, AppState>, project_id: String, id: Stri
     )
 }
 
+/// 调整故事线列表顺序。
+#[tauri::command(rename_all = "camelCase")]
+pub fn story_arc_reorder(state: State<'_, AppState>, project_id: String, ids: Vec<String>) -> CommandResult<Vec<StoryArc>> {
+    CommandResult::from_result(state.with_project(&project_id, |conn| db::reorder_arcs(conn, &ids)))
+}
+
 /// 替换一条故事线里的事件顺序。
 ///
 /// * `project_id` - 项目 id。
@@ -545,6 +603,21 @@ pub fn scene_delete(state: State<'_, AppState>, project_id: String, id: String) 
     )
 }
 
+/// 调整某一章下场景的顺序。
+///
+/// * `project_id` - 项目 id。
+/// * `chapter_id` - 章节 id。
+/// * `ids` - 新的顺序。
+#[tauri::command(rename_all = "camelCase")]
+pub fn scene_reorder(
+    state: State<'_, AppState>,
+    project_id: String,
+    chapter_id: String,
+    ids: Vec<String>,
+) -> CommandResult<Vec<Scene>> {
+    CommandResult::from_result(state.with_project(&project_id, |conn| db::reorder_scenes(conn, &chapter_id, &ids)))
+}
+
 /// 笔记列表。
 ///
 /// * `project_id` - 项目 id。
@@ -595,6 +668,12 @@ pub fn note_delete(state: State<'_, AppState>, project_id: String, id: String) -
     CommandResult::from_result(
         state.with_project(&project_id, |conn| db::delete_note(conn, &id).map(|deleted_id| Deleted { deleted_id })),
     )
+}
+
+/// 重排笔记。
+#[tauri::command(rename_all = "camelCase")]
+pub fn note_reorder(state: State<'_, AppState>, project_id: String, ids: Vec<String>) -> CommandResult<Vec<Note>> {
+    CommandResult::from_result(state.with_project(&project_id, |conn| db::reorder_notes(conn, &ids)))
 }
 
 /// 搜索人物、事件、故事线、章节和笔记。

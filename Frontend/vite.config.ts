@@ -29,5 +29,17 @@ export default defineConfig({
     target: "es2021",  // 目标浏览器兼容性
     minify: process.env.TAURI_DEBUG ? false : "esbuild",  // 压缩
     sourcemap: !!process.env.TAURI_DEBUG,  // 源映射
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes("node_modules")) return
+          if (id.includes("@vue-flow")) return "vue-flow"
+          if (id.includes("codemirror") || id.includes("@codemirror")) return "codemirror"
+          if (id.includes("marked")) return "markdown"
+          if (id.includes("vue-router")) return "vue-vendor"
+          if (id.includes("/vue/") || id.includes("@vue/")) return "vue-vendor"
+        },
+      },
+    },
   },
 });

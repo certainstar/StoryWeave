@@ -36,6 +36,7 @@ pub fn require_distinct(source_id: &str, target_id: &str) -> Result<(), ApiError
 /// * `allowed` - 允许的取值。
 /// * `reason` - 不在列表中时的 reason。
 /// * `message` - 给作者看的句子。
+#[allow(dead_code)]
 pub fn require_one_of(
     value: &str,
     allowed: &[&str],
@@ -47,6 +48,18 @@ pub fn require_one_of(
     } else {
         Err(ApiError::validation(reason, message))
     }
+}
+
+/// 词表标签：允许预设之外，作者自定义的短文本（如关系类型、人物状态）。
+pub fn require_vocab_label(value: &str) -> Result<String, ApiError> {
+    let trimmed = require_name(value)?;
+    if trimmed.chars().count() > 16 {
+        return Err(ApiError::validation(
+            "LABEL_TOO_LONG",
+            "标签请控制在 16 个字符以内。",
+        ));
+    }
+    Ok(trimmed)
 }
 
 /// `ids` 必须是 `existing` 的一个排列：数量相同、成员相同、没有重复。

@@ -1,6 +1,9 @@
 import { defineStore } from "pinia"
 import { computed, ref } from "vue"
 import { useRouter } from "vue-router"
+import { dedupeRecentByName } from "../domain/projects"
+import { migrateThemeId, THEME_IDS, THEME_LABEL } from "../domain/themes"
+import { mergeVocab } from "../domain/vocab"
 import type {
   Chapter,
   Character,
@@ -15,8 +18,14 @@ import type {
   Snapshot,
   StoryArc,
   StoryEvent,
+  LeaveDraft,
+  ThemeId,
   ViewId,
+  Vocab,
+  VocabCategory,
 } from "../domain/types"
+import { VOCAB_CATEGORY_REMOTE } from "../domain/types"
+import { DEFAULT_VOCAB } from "../domain/vocab"
 import { ApiError, repository } from "../repositories"
 
 export type Selection =
@@ -24,6 +33,7 @@ export type Selection =
   | null
 
 const SAVE_DELAY = 800
+const THEMES = THEME_IDS
 
 /**
  * 工作台状态。页面只通过这里读写，不直接调用命令。
@@ -36,7 +46,7 @@ export const useWorkspace = defineStore("workspace", () => {
   const repo = repository()
 
   /** 应用主题。 */
-  const theme = ref<"paper" | "ink">("paper")
+  const theme = ref<ThemeId>("paper")
   /** 最近打开的项目。 */
   const recent = ref<ProjectSummary[]>([])
   /** 恢复状态。 */
@@ -73,6 +83,8 @@ export const useWorkspace = defineStore("workspace", () => {
   const snapshots = ref<Snapshot[]>([])
   /** 当前选择的功能栏。 */
   const selection = ref<Selection>(null)
+  /** 递增时请求工作台展开详情栏（由 Workbench 监听）。 */
+  const inspectorRequest = ref(0)
   /** 关系草稿。 */
   const draft = ref<Pick<Relation, "sourceId" | "targetId" | "type" | "description" | "directional" | "span"> | null>(null)
   /** 确认删除。 */
@@ -93,9 +105,17 @@ export const useWorkspace = defineStore("workspace", () => {
   const searchHits = ref<SearchHit[]>([])
   /** 搜索面板是否打开。 */
   const searchOpen = ref(false)
+  /** 下拉词表。 */
+  const vocab = ref<Vocab>({ ...DEFAULT_VOCAB })
+  /** 离开页面时的草稿策略。 */
+  const leaveDraft = ref<LeaveDraft>("autosave")
+  /** 正在从仓库灌入数据，此间不触发自动保存。 */
+  const hydrating = ref(false)
 
   /** 定时器列表。 */
   const timers = new Map<string, number>()
+  /** 待执行的保存任务。 */
+  const tasks = new Map<string, () => Promise<void>>()
   /** 正在保存的对象列表。 */
   const pending = new Set<string>()
 
@@ -104,8 +124,12 @@ export const useWorkspace = defineStore("workspace", () => {
     if (savePhase.value === "pending") return "正在保存～"
     if (savePhase.value === "error") return notice.value || "刚才这次没有保存。可以重试～"
     if (savePhase.value === "saved" && savedAt.value) return `已保存 ${savedAt.value}`
+    if (project.value) return "已就绪～"
     return "尚未改动～"
   })
+
+  /** 最近项目，同名只显示一条。 */
+  const recentDisplay = computed(() => dedupeRecentByName(recent.value))
 
   /** 当前项目的 ID。 */
   const projectId = () => {
@@ -120,7 +144,7 @@ export const useWorkspace = defineStore("workspace", () => {
    * @returns 无返回值。
   */
   function applyTheme(next: string) {
-    const value = next === "ink" ? "ink" : "paper"
+    const value = migrateThemeId(next)
     theme.value = value
     document.documentElement.dataset.theme = value
   }
@@ -131,7 +155,7 @@ export const useWorkspace = defineStore("workspace", () => {
    * 
    * @returns 无返回值。
   */
-  async function setTheme(next: "paper" | "ink") {
+  async function setTheme(next: ThemeId) {
     applyTheme(next)
     try {
       applyTheme(await repo.appSetTheme(next))
@@ -139,6 +163,16 @@ export const useWorkspace = defineStore("workspace", () => {
       fail(error)
     }
   }
+
+  /** 切换到下一个主题。 */
+  async function cycleTheme() {
+    const index = THEMES.indexOf(theme.value)
+    const next = THEMES[(index + 1) % THEMES.length] ?? "paper"
+    await setTheme(next)
+  }
+
+  /** 当前主题的中文名。 */
+  const themeLabel = computed(() => THEME_LABEL[theme.value])
 
   /** 保存失败。 
    * 
@@ -169,6 +203,8 @@ export const useWorkspace = defineStore("workspace", () => {
    * @returns 无返回值。
   */
   function queue(key: string, task: () => Promise<void>) {
+    if (hydrating.value) return
+    tasks.set(key, task)
     pending.add(key)
     savePhase.value = "pending"
     /** 之前的定时器。 */
@@ -204,15 +240,83 @@ export const useWorkspace = defineStore("workspace", () => {
     if (timer) window.clearTimeout(timer)
     timers.delete(key)
     pending.delete(key)
+    tasks.delete(key)
+  }
+
+  /** 取消全部待保存任务。 */
+  function cancelAllPending() {
+    for (const key of [...timers.keys()]) cancel(key)
+    savePhase.value = "idle"
+    notice.value = ""
+  }
+
+  /** 是否还有未落盘的改动。 */
+  function hasDraft() {
+    return pending.size > 0 || draft.value !== null
+  }
+
+  /** 立刻执行全部待保存任务。 */
+  async function flushPending() {
+    const keys = [...pending]
+    for (const key of keys) {
+      const timer = timers.get(key)
+      if (timer) window.clearTimeout(timer)
+      timers.delete(key)
+    }
+    await Promise.all(
+      keys.map(async (key) => {
+        const task = tasks.get(key)
+        if (!task) return
+        try {
+          await task()
+          pending.delete(key)
+          tasks.delete(key)
+        } catch (error) {
+          pending.delete(key)
+          tasks.delete(key)
+          fail(error)
+        }
+      }),
+    )
+    succeed()
+  }
+
+  /** 切换页面前按策略处理草稿。 */
+  async function guardLeave() {
+    if (!hasDraft()) return true
+    if (leaveDraft.value === "ignore") {
+      cancelAllPending()
+      draft.value = null
+      return true
+    }
+    if (leaveDraft.value === "prompt") {
+      if (!window.confirm("还有未保存的改动。要离开这一页吗？")) return false
+      cancelAllPending()
+      draft.value = null
+      return true
+    }
+    await flushPending()
+    return true
+  }
+
+  /** 保存离开策略。 */
+  async function setLeaveDraft(next: LeaveDraft) {
+    leaveDraft.value = next
+    await repo.appSetLeaveDraft(next)
   }
 
   /** 启动，给部分状态赋值。 */
   async function boot() {
     const state = await repo.appGetState()
+    cancelAllPending()
+    savePhase.value = "idle"
+    notice.value = ""
     applyTheme(state.theme)
     recent.value = state.recent
     recovery.value = state.recovery
     plugins.value = await repo.pluginList()
+    vocab.value = mergeVocab(await repo.vocabList())
+    leaveDraft.value = state.leaveDraft ?? "autosave"
   }
 
   /** 忽略恢复。 */
@@ -242,31 +346,73 @@ export const useWorkspace = defineStore("workspace", () => {
     return summary
   }
 
+  /** 刷新当前项目的下拉词表。 */
+  async function refreshVocab() {
+    if (!project.value) {
+      vocab.value = mergeVocab(await repo.vocabList())
+      return
+    }
+    vocab.value = mergeVocab(await repo.vocabListForProject(project.value.id))
+  }
+
+  /** 将自定义标签写入项目词表。 */
+  async function ensureVocabLabel(category: VocabCategory, label: string) {
+    const trimmed = label.trim()
+    if (!trimmed || !project.value) return
+    if (vocab.value[category].includes(trimmed)) return
+    try {
+      vocab.value = mergeVocab(
+        await repo.vocabEnsure(project.value.id, VOCAB_CATEGORY_REMOTE[category], trimmed),
+      )
+    } catch (error) {
+      fail(error)
+    }
+  }
+
   /** 重新加载项目。 */
   async function reload() {
     const id = projectId()
-    const [nextCharacters, nextRelations, nextEvents, nextArcs, nextChapters, nextNotes, nextLayout, nextSnapshots] = await Promise.all([
-      repo.characterList(id),
-      repo.relationList(id),
-      repo.eventList(id),
-      repo.arcList(id),
-      repo.chapterList(id),
-      repo.noteList(id),
-      repo.graphLayoutGet(id),
-      repo.backupList(id),
-    ])
-    characters.value = nextCharacters
-    relations.value = nextRelations
-    events.value = nextEvents
-    arcs.value = nextArcs
-    chapters.value = nextChapters
-    notes.value = nextNotes
-    layout.value = nextLayout
-    snapshots.value = nextSnapshots
-    const groups = await Promise.all(nextChapters.map((chapter) => repo.sceneList(id, chapter.id)))
-    scenes.value = groups.flat()
-    const opened = await repo.projectOpen(id)
-    project.value = opened
+    hydrating.value = true
+    try {
+      const [
+        nextCharacters,
+        nextRelations,
+        nextEvents,
+        nextArcs,
+        nextChapters,
+        nextNotes,
+        nextLayout,
+        nextSnapshots,
+        nextVocab,
+      ] = await Promise.all([
+        repo.characterList(id),
+        repo.relationList(id),
+        repo.eventList(id),
+        repo.arcList(id),
+        repo.chapterList(id),
+        repo.noteList(id),
+        repo.graphLayoutGet(id),
+        repo.backupList(id),
+        repo.vocabListForProject(id),
+      ])
+      characters.value = nextCharacters
+      relations.value = nextRelations
+      events.value = nextEvents
+      arcs.value = nextArcs
+      chapters.value = nextChapters
+      notes.value = nextNotes
+      layout.value = nextLayout
+      snapshots.value = nextSnapshots
+      const groups = await Promise.all(nextChapters.map((chapter) => repo.sceneList(id, chapter.id)))
+      scenes.value = groups.flat()
+      vocab.value = mergeVocab(nextVocab)
+      const opened = await repo.projectOpen(id)
+      project.value = opened
+    } finally {
+      hydrating.value = false
+      savePhase.value = "idle"
+      notice.value = ""
+    }
   }
 
   /** 加载项目。 
@@ -276,13 +422,15 @@ export const useWorkspace = defineStore("workspace", () => {
    * @returns 无返回值。
   */
   async function loadProject(id: string) {
-    if (project.value?.id === id && characters.value) return
+    if (project.value?.id === id && characters.value.length) return
+    cancelAllPending()
+    savePhase.value = "idle"
+    notice.value = ""
     const summary = await repo.projectOpen(id)
     project.value = summary
     selection.value = null
     draft.value = null
     confirm.value = null
-    savePhase.value = "idle"
     savedAt.value = ""
     await reload()
   }
@@ -305,20 +453,33 @@ export const useWorkspace = defineStore("workspace", () => {
    * 
    * @returns 无返回值。
   */
-  function select(next: Selection, view?: ViewId) {
+  async function select(next: Selection, view?: ViewId) {
+    if (!(await guardLeave())) return
     selection.value = next
     confirm.value = null
-    // 如果选择的是关系功能栏，则不重置草稿。
     if (next?.kind !== "relation") draft.value = null
-    // 如果指定了视图，则导航到该视图。
     if (view && project.value) {
-      void router.push({ 
-        name: view, 
-        params: { 
+      await router.push({
+        name: view,
+        params: {
           id: project.value.id,
         },
       })
     }
+  }
+
+  /** 删除当前或指定项目。 */
+  async function deleteProject(id: string) {
+    if (!window.confirm("删除后无法恢复。确定删除这个项目？")) return
+    if (project.value?.id === id) {
+      cancelAllPending()
+      await repo.projectClose(id).catch(() => undefined)
+      project.value = null
+      selection.value = null
+      await router.push({ name: "home" })
+    }
+    await repo.projectDelete(id)
+    recent.value = await repo.projectList()
   }
 
   /** 自动保存当前项目。 */
@@ -452,11 +613,16 @@ export const useWorkspace = defineStore("workspace", () => {
     })
   }
 
+  function requestInspectorOpen() {
+    inspectorRequest.value += 1
+  }
+
   /** 创建人物。 */
   async function createCharacter() {
     const created = await repo.characterCreate(projectId(), "未命名人物")
     characters.value.push(created)
     select({ kind: "character", id: created.id }, "characters")
+    requestInspectorOpen()
     markSaved()
   }
 
@@ -473,6 +639,7 @@ export const useWorkspace = defineStore("workspace", () => {
     const created = await repo.chapterCreate(projectId(), "未命名章节")
     chapters.value.push(created)
     select({ kind: "chapter", id: created.id }, "chapters")
+    requestInspectorOpen()
     markSaved()
   }
 
@@ -481,14 +648,22 @@ export const useWorkspace = defineStore("workspace", () => {
     const created = await repo.arcCreate(projectId(), "未命名故事线")
     arcs.value.push(created)
     select({ kind: "arc", id: created.id }, "arcs")
+    requestInspectorOpen()
     markSaved()
   }
 
   /** 创建笔记。 */
   async function createNote() {
     const created = await repo.noteCreate(projectId(), "未命名笔记")
-    notes.value.unshift(created)
+    notes.value.push(created)
+    notes.value.sort((a, b) => a.sortOrder - b.sortOrder)
     select({ kind: "note", id: created.id }, "notes")
+    markSaved()
+  }
+
+  /** 重排笔记。 */
+  async function applyNoteOrder(ids: string[]) {
+    notes.value = await repo.noteReorder(projectId(), ids)
     markSaved()
   }
 
@@ -505,10 +680,10 @@ export const useWorkspace = defineStore("workspace", () => {
     draft.value = {
       sourceId: sourceId || characters.value[0]?.id || "",
       targetId: fallback?.id || "",
-      type: "未知",
+      type: "待定",
       description: "",
       directional: true,
-      span: "未知",
+      span: "待定",
     }
     selection.value = null
     confirm.value = null
@@ -541,15 +716,19 @@ export const useWorkspace = defineStore("workspace", () => {
   async function confirmDelete() {
     const current = confirm.value
     if (!current) return
-    const id = projectId()
+    const pid = projectId()
     cancel(`${current.kind}:${current.id}`)
-    if (current.kind === "character") await repo.characterDelete(id, current.id)
-    if (current.kind === "relation") await repo.relationDelete(id, current.id)
-    if (current.kind === "event") await repo.eventDelete(id, current.id)
-    if (current.kind === "arc") await repo.arcDelete(id, current.id)
-    if (current.kind === "chapter") await repo.chapterDelete(id, current.id)
-    if (current.kind === "note") await repo.noteDelete(id, current.id)
-    if (current.kind === "scene") await repo.sceneDelete(id, current.id)
+    const deleteHandlers: Record<string, (entityId: string) => Promise<unknown>> = {
+      character: (entityId) => repo.characterDelete(pid, entityId),
+      relation: (entityId) => repo.relationDelete(pid, entityId),
+      event: (entityId) => repo.eventDelete(pid, entityId),
+      arc: (entityId) => repo.arcDelete(pid, entityId),
+      chapter: (entityId) => repo.chapterDelete(pid, entityId),
+      note: (entityId) => repo.noteDelete(pid, entityId),
+      scene: (entityId) => repo.sceneDelete(pid, entityId),
+    }
+    const run = deleteHandlers[current.kind]
+    if (run) await run(current.id)
     confirm.value = null
     selection.value = null
     await reload()
@@ -582,6 +761,23 @@ export const useWorkspace = defineStore("workspace", () => {
    * 
    * @returns 无返回值。
   */
+  async function applyEventOrder(ids: string[]) {
+    events.value = await repo.eventReorder(projectId(), ids)
+    markSaved()
+  }
+
+  async function applyChapterOrder(ids: string[]) {
+    chapters.value = await repo.chapterReorder(projectId(), ids)
+    markSaved()
+  }
+
+  async function moveScene(chapterId: string, ids: string[]) {
+    const saved = await repo.sceneReorder(projectId(), chapterId, ids)
+    const others = scenes.value.filter((scene) => scene.chapterId !== chapterId)
+    scenes.value = [...others, ...saved]
+    markSaved()
+  }
+
   async function moveChapter(id: string, delta: number) {
     const sorted = [...chapters.value].sort((a, b) => a.sortOrder - b.sortOrder)
     const index = sorted.findIndex((item) => item.id === id)
@@ -605,6 +801,11 @@ export const useWorkspace = defineStore("workspace", () => {
     const saved = await repo.arcSetEvents(projectId(), id, eventIds)
     const current = arcs.value.find((item) => item.id === id)
     if (current) current.eventIds = saved.eventIds
+    markSaved()
+  }
+
+  async function applyArcOrder(ids: string[]) {
+    arcs.value = await repo.arcReorder(projectId(), ids)
     markSaved()
   }
 
@@ -645,6 +846,11 @@ export const useWorkspace = defineStore("workspace", () => {
 
   /** 生成示例数据。 */
   async function seedSample() {
+    const existing = recent.value.find((item) => item.name === "北境剑录")
+    if (existing) {
+      await openProject(existing.id)
+      return
+    }
     const summary = await createProject("北境剑录", "一部以北境剑庐为起点的长篇示例。沈照离庐三年，名册没有销名。")
     const id = summary.id
     const people = [
@@ -746,6 +952,9 @@ export const useWorkspace = defineStore("workspace", () => {
   return {
     theme,
     recent,
+    recentDisplay,
+    vocab,
+    leaveDraft,
     recovery,
     project,
     characters,
@@ -759,6 +968,7 @@ export const useWorkspace = defineStore("workspace", () => {
     plugins,
     snapshots,
     selection,
+    inspectorRequest,
     draft,
     confirm,
     statusLabel,
@@ -771,6 +981,8 @@ export const useWorkspace = defineStore("workspace", () => {
     narrativeMismatch,
     boot,
     setTheme,
+    cycleTheme,
+    themeLabel,
     dismissRecovery,
     restoreRecovery,
     createProject,
@@ -798,11 +1010,22 @@ export const useWorkspace = defineStore("workspace", () => {
     askDelete,
     confirmDelete,
     moveEvent,
+    applyEventOrder,
+    applyChapterOrder,
+    applyNoteOrder,
+    moveScene,
     moveChapter,
     setArcEvents,
+    applyArcOrder,
     search,
+    ensureVocabLabel,
+    refreshVocab,
     makeBackup,
     restoreBackup,
     seedSample,
+    guardLeave,
+    flushPending,
+    setLeaveDraft,
+    deleteProject,
   }
 })
